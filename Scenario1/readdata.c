@@ -15,8 +15,10 @@ Email: wdswater@gmail.com
 #include "wdsvars.h"
 
 char *Tok[MAX_TOKS]; /* 定义字段数组，用于存储字段 */
-int Ntokens;	/* data.txt中每行字段数量 */
-FILE *InFile;	/* data.txt文件指针 */
+int Ntokens;		 /* data.txt中每行字段数量 */
+FILE *InFile;		 /* data.txt文件指针 */
+int	break_count;	 /* 爆管计数 */
+int	leak_count;		 /* 漏损管道计数 */
 
 /* 定义data.txt文件标题数组 */
 char *Sect_Txt[] = { "[Initial_Solution]",
@@ -52,6 +54,18 @@ void Open_file(char *f1)
 	}
 }
 
+void initializeList(LinkedList *list)
+/*----------------------------------------------------------------
+**  Input:   *list, pointer to list
+**  Output:  none
+**  Purpose: initializes LinkedList pointers to NULL
+**----------------------------------------------------------------*/
+{
+	list->head = NULL;
+	list->tail = NULL;
+	list->current = NULL;
+}
+
 void Init_pointers()
 /*----------------------------------------------------------------
 **  Input:   none
@@ -59,10 +73,11 @@ void Init_pointers()
 **  Purpose: initializes global pointers to NULL
 **----------------------------------------------------------------*/
 {
-	Part_init_solution = NULL;	/* 初始解指针 */
+	//Part_init_solution = NULL;	/* 初始解指针 */
 	BreaksRepository = NULL;	/* 爆管仓库指针(用于存储所有爆管) */
 	LeaksRepository = NULL;		/* 漏损管道仓库指针(用于存储所有漏损管道) */
 	Schedule = NULL;			/* 工程队调度指针 */
+	initializeList(&linkedlist);/* 决策变量指针结构体 */
 }
 
 int  Str_match(char *str, char *substr)
@@ -211,21 +226,59 @@ int  Get_tokens(char *s)
 	return(n);
 }
 
-int  Get_float(char *s, double *y)
+int  Get_int(char *s, int *y)
 /*-----------------------------------------------------------
 **  输入: *s = character string
-**  输出: *y = floating point number
+**  输出: *y = int point number
 **             returns 1 if conversion successful, 0 if not
-**  功能: converts string to floating point number
+**  功能: converts string to int point number
 **-----------------------------------------------------------*/
 {
 	char *endptr;
-	*y = (double)strtod(s, &endptr);
+	*y = (int)strtod(s, &endptr);
 	if (*endptr > 0) return(0);
 	return(1);
 }
 
-void initialsolution()
+int Initial_Solution()
+/*
+**--------------------------------------------------------------
+**  Input:   none
+**  Output:  errcode code
+**  Purpose: processes  initialsolution data
+**  Format:
+**  [Initial_Solution]
+**  Type	index
+**--------------------------------------------------------------*/
+{
+	int x,y;
+	PDecision_Variable p;
+	
+
+	if (Ninivariables > 0)
+	{
+		p = (PDecision_Variable)calloc(1, sizeof(struct Decision_Variable));
+
+		if (!Get_float(Tok[0], &x)) return (401); /* 数值类型错误，含有非法字符 */
+		if(!Get_float(Tok[1], &y)) return (401);  /* 数值类型错误，含有非法字符 */
+		p->type = x;
+		p->index = y;
+		p->next = NULL;
+
+		if (linkedlist.head = NULL)
+		{
+			linkedlist.head = p;
+		}
+		else
+		{
+			linkedlist.tail->next = p;
+		}
+		linkedlist.tail = p;
+	}
+	return 0;
+}
+
+void Breaks_Value()
 /*
 **--------------------------------------------------------------
 **  Input:   none
@@ -236,17 +289,24 @@ void initialsolution()
 **  Type	index
 **--------------------------------------------------------------*/
 {
-	double x;
-	double *p;
-	if (Ninivariables > 0)
-	{
-		p = (double*)calloc(Ntokens, sizeof(double));
-		for (int i = 0; i < Ntokens; i++)
-		{
-			getfloat(Tok[i], &x);
-			p[i] = x;
-		}
-		Initial_data[Ninitialsolutions] = p;
-		Ninitialsolutions++;
-	}
+	int time1, time2;
+	float dia;
+	SFailurePipe* ptr= (SFailurePipe*)calloc(Ntokens - 5, sizeof(SFailurePipe));
+
+	strncpy(BreaksRepository[break_count].pipeID, Tok[0], MAX_ID);
+	strncpy(BreaksRepository[break_count].nodeID, Tok[1], MAX_ID);
+
+	if (!Get_float(Tok[2], &dia))	return (401);
+	BreaksRepository[break_count].pipediameter = dia;
+
+	for (int i = 3; i < Ntokens - 2; i++)
+		strncpy(ptr[i].pipeID, Tok[i], MAX_ID);
+	BreaksRepository[break_count].pipes = ptr;
+
+	if (!Get_float(Tok[Ntokens - 2], &time1))	return (401);
+	if (!Get_float(Tok[Ntokens - 1], &time2))	return (401);
+	BreaksRepository[break_count].isolate_time = time1;
+	BreaksRepository[break_count].replace_time = time2;
+
+	break_count++;
 }
