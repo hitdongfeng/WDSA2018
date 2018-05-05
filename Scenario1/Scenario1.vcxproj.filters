@@ -21,6 +21,9 @@
     <ClInclude Include="wdsvars.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="wdstext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="readdata.c">

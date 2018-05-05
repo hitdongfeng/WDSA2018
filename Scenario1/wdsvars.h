@@ -9,6 +9,7 @@ EXTERN int	Nbreaks,		/* 爆管管道数量 */
 			Nleaks,			/* 漏失管道数量 */
 			Ninivariables;	/* 初始解变量数量 */
 
+EXTERN FILE *ErrFile;		/* 错误报告文件指针 */
 
 
 

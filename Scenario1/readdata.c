@@ -11,8 +11,10 @@ Email: wdswater@gmail.com
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include "wdstext.h"
 #define EXTERN extern
 #include "wdsvars.h"
+#define MAXERRS  5   /* 错误信息累积最大次数 */
 
 char *Tok[MAX_TOKS]; /* 定义字段数组，用于存储字段 */
 int Ntokens;		 /* data.txt中每行字段数量 */
@@ -35,21 +37,40 @@ enum Sect_Type {
 	_END
 };
 
-void Open_file(char *f1)
+
+int  str_comp(char *s1, char *s2)
+/*---------------------------------------------------------------
+**  Input:   s1 = character string; s2 = character string                                
+**  Output:  1 if s1 is same as s2, 0 otherwise                                                      
+**  Purpose: case insensitive comparison of strings s1 & s2  
+**---------------------------------------------------------------*/
+{
+	for (int i = 0; UCHAR(s1[i]) == UCHAR(s2[i]); i++)
+		if (!s1[i + 1] && !s2[i + 1]) return(1);
+	return(0);
+}                                       
+
+void Open_file(char *f1,char *f2)
 /*----------------------------------------------------------------
-**  输入: f1 = 文件指针
-**  输出: 无
-**  返回: 错误代码
-**  功能: 打开数据文件
+**  Input: f1 = data.txt文件指针, f2 = 错误报告文件指针
+**  Output: none
+**  Purpose: 打开数据和错误报告文件
 **----------------------------------------------------------------*/
 {
 	/* 初始化文件指针为 NULL */
 	InFile = NULL;
+	ErrFile = NULL;
 
-	/* 打开数据文件 */
-	if ((InFile = fopen(f1, "rt")) == NULL)
+	if (str_comp(f1, f2))
 	{
-		printf("Can not open the data.txt file!\n");
+		printf("Cannot use duplicate file names!\n");
+		assert(0); //终止程序，返回错误信息
+	}
+
+	/* 只读方式打开数据文件 */
+	if ((InFile = fopen(f1, "rt")) == NULL || (ErrFile = fopen(f2, "wt")) == NULL)
+	{
+		printf("Can not open the data.txt or error report file!\n");
 		assert(0); //终止程序，返回错误信息
 	}
 }
@@ -124,7 +145,7 @@ int  Find_match(char *line, char *keyword[])
 void  Get_count()
 /*--------------------------------------------------------------
 **  Input:   none
-**  Output:  returns error code
+**  Output:  none
 **  Purpose: determines number of breaks, leaks and inivarialbles
 **--------------------------------------------------------------*/
 {
@@ -169,19 +190,35 @@ void  Get_count()
 	}
 }
 
-void  Alloc_Memory()
+int  Alloc_Memory()
 /*----------------------------------------------------------------
 **  Input:   none
-**  Output:  none
+**  Output:  error code
 **  Returns: error code
-**  Purpose: allocates memory for network data structures
+**  Purpose: allocates memory for breaks and leanks 
 **----------------------------------------------------------------*/
 {
+	int errcode = 0, err_count = 0;
+	
 	if (Nbreaks > 0)
 		BreaksRepository = (SBreaks*)calloc(Nbreaks, sizeof(SBreaks));
+
 	if (Nleaks > 0)
 		LeaksRepository = (SLeaks*)calloc(Nleaks, sizeof(SLeaks));
+
 	Schedule = (SCrew*)calloc(MAX_CREWS, sizeof(SCrew));
+
+	ERR_CODE(MEM_CHECK(BreaksRepository));	if (errcode) err_count++;
+	ERR_CODE(MEM_CHECK(LeaksRepository));	if (errcode) err_count++;
+	ERR_CODE(MEM_CHECK(Schedule));	if (errcode) err_count++;
+
+	if (err_count)
+	{
+		fprintf(ErrFile, ERR402);
+		return (402);
+	}
+
+	return errcode;
 }
 
 int  Get_tokens(char *s)
@@ -240,6 +277,20 @@ int  Get_int(char *s, int *y)
 	return(1);
 }
 
+int  Get_float(char *s, float *y)
+/*-----------------------------------------------------------
+**  输入: *s = character string
+**  输出: *y = float point number
+**             returns 1 if conversion successful, 0 if not
+**  功能: converts string to floating point number
+**-----------------------------------------------------------*/
+{
+	char *endptr;
+	*y = (float)strtod(s, &endptr);
+	if (*endptr > 0) return(0);
+	return(1);
+}
+
 int Initial_Solution()
 /*
 **--------------------------------------------------------------
@@ -259,8 +310,9 @@ int Initial_Solution()
 	{
 		p = (PDecision_Variable)calloc(1, sizeof(struct Decision_Variable));
 
-		if (!Get_float(Tok[0], &x)) return (401); /* 数值类型错误，含有非法字符 */
-		if(!Get_float(Tok[1], &y)) return (401);  /* 数值类型错误，含有非法字符 */
+		if (!Get_int(Tok[0], &x))	return (403); /* 数值类型错误，含有非法字符 */	
+		if (!Get_int(Tok[1], &y))	return (403); /* 数值类型错误，含有非法字符 */
+
 		p->type = x;
 		p->index = y;
 		p->next = NULL;
@@ -278,15 +330,15 @@ int Initial_Solution()
 	return 0;
 }
 
-void Breaks_Value()
+int Breaks_Value()
 /*
 **--------------------------------------------------------------
 **  Input:   none
-**  Output:  none
+**  Output:  error code
 **  Purpose: processes  initialsolution data
 **  Format:
 **  [Initial_Solution]
-**  Type	index
+**  PipeID BreakID Diameter(mm)	pipes_closed_for_isolation Isolation_time(min) replacement(h)
 **--------------------------------------------------------------*/
 {
 	int time1, time2;
@@ -296,17 +348,150 @@ void Breaks_Value()
 	strncpy(BreaksRepository[break_count].pipeID, Tok[0], MAX_ID);
 	strncpy(BreaksRepository[break_count].nodeID, Tok[1], MAX_ID);
 
-	if (!Get_float(Tok[2], &dia))	return (401);
+	if (!Get_float(Tok[2], &dia)) return (403); /* 数值类型错误，含有非法字符 */
 	BreaksRepository[break_count].pipediameter = dia;
 
 	for (int i = 3; i < Ntokens - 2; i++)
 		strncpy(ptr[i].pipeID, Tok[i], MAX_ID);
 	BreaksRepository[break_count].pipes = ptr;
 
-	if (!Get_float(Tok[Ntokens - 2], &time1))	return (401);
-	if (!Get_float(Tok[Ntokens - 1], &time2))	return (401);
+	if (!Get_int(Tok[Ntokens - 2], &time1)) return (403); /* 数值类型错误，含有非法字符 */
+	if (!Get_int(Tok[Ntokens - 1], &time2)) return (403); /* 数值类型错误，含有非法字符 */ 
 	BreaksRepository[break_count].isolate_time = time1;
 	BreaksRepository[break_count].replace_time = time2;
 
 	break_count++;
+
+	return 0;
+}
+
+int Leaks_Value()
+/*
+**--------------------------------------------------------------
+**  Input:   none
+**  Output:  error code
+**  Purpose: processes  initialsolution data
+**  Format:
+**  [Initial_Solution]
+**  PipeID LeakID Diameter(mm) reparation(h)
+**--------------------------------------------------------------*/
+{
+	int time1;
+	float dia;
+
+	strncpy(LeaksRepository[leak_count].pipeID, Tok[0], MAX_ID);
+	strncpy(LeaksRepository[leak_count].nodeID, Tok[1], MAX_ID);
+
+	if (!Get_float(Tok[2], &dia))	return (403);
+	LeaksRepository[leak_count].pipediameter = dia;
+
+	if (!Get_int(Tok[Ntokens - 1], &time1))	return (403);
+	LeaksRepository[leak_count].repair_time = time1;
+
+	leak_count++;
+
+	return 0;
+}
+
+int  newline(int sect, char *line)
+/*--------------------------------------------------------------
+**  Input:   sect  = current section of input file
+**           *line = line read from input file
+**  Output:  returns error code or 0 if no error found
+**  Purpose: processes a new line of data from input file
+**--------------------------------------------------------------*/
+{
+	switch (sect)
+	{
+	case _Initial_Solution:	return(Initial_Solution()); break;
+	case _BREAKS:	return(Breaks_Value()); break;
+	case _LEAKS:	return(Leaks_Value()); break;
+	}
+	return(403);
+}
+
+int  readdata(char *f1, char *f2)
+/*----------------------------------------------------------------
+**  Input:   f1 = pointer to name of data.txt file; 
+**			 f2 = pointer to name of errcode report file;
+**  Output:  error code
+**  Purpose: opens data file & reads parameter data
+**----------------------------------------------------------------*/
+{
+	int		errcode = 0,
+			inperr, errsum = 0;	  /* 错误代码与错误总数 */
+	char	line[MAX_LINE + 1],   /* Line from input data file       */
+			wline[MAX_LINE + 1];  /* Working copy of input line      */
+	int		sect, newsect;        /* Data sections                   */
+	
+	Ntokens = 0;			/* 每行字段数量 */
+	break_count = 0;	    /* 爆管计数 */
+	leak_count = 0;			/* 漏损管道计数 */
+
+	Init_pointers();			/* Initialize global pointers to NULL. */
+	Open_file(f1,f2);			/* Open input & report files */
+	Get_count();				/* 获取相关类型参数的数量 */
+
+	errcode = Alloc_Memory();	/* 为相关类型参数结构体分配内存 */
+	if (errcode)
+	{
+		fprintf(ErrFile, ERR402);
+		return (402);
+	}
+
+	rewind(InFile);				/* 将指针指向文件开头 */
+
+	while (fgets(line, MAX_LINE, InFile) != NULL)
+	{
+
+		/* Make copy of line and scan for tokens */
+		strcpy(wline, line);
+		Ntokens = Get_tokens(wline);
+
+		/* Skip blank lines and comments */
+		if (Ntokens == 0) continue;
+		if (*Tok[0] == ';') continue;
+
+		/* 检查字符串是否超过了每行最大长度*/
+		if (strlen(line) >= MAX_LINE)
+		{
+			fprintf(ErrFile, ERR404);
+			fprintf(ErrFile, "%s\n", line);
+			errsum++;
+		}
+
+		/* Check if at start of a new input section */
+		if (*Tok[0] == '[')
+		{
+			newsect = Find_match(Tok[0], Sect_Txt);
+			if (newsect >= 0)
+			{
+				sect = newsect;
+				if (sect == _END) break;
+				continue;
+			}
+			else
+			{
+				fprintf(ErrFile, ERR405,line);
+				errsum++;
+				break;
+			}
+		}
+		/* Otherwise process next line of input in current section */
+		else
+		{
+			inperr = newline(sect, line);
+			if (inperr > 0)
+			{
+				fprintf(ErrFile, ERR403);
+				errsum++;
+			}
+		}
+		/* 搜索到文件末尾或达到错误信息最大数量时，结束while循环 */
+		if (errsum == MAXERRS) break;
+	}   /* End of while */
+
+	if (errsum > 0)  errcode = 406; //输入文件中有一处或多处错误
+
+	return (errcode);
 }

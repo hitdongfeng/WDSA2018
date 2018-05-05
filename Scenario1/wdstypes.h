@@ -5,15 +5,15 @@
 /*-----------------------------
           全局常量的定义
 -----------------------------*/
-#define   MAX_LINE   1000          /* data.txt文件每行最大字符数 */
-#define   MAX_TOKS   100           /* data.txt文件每行最大字段数 */
+#define   MAX_LINE   500          /* data.txt文件每行最大字符数 */
+#define   MAX_TOKS   50           /* data.txt文件每行最大字段数 */
 #define   MAX_CREWS	 3			   /* 工程队数量 */
 
 #define	  MAX_ID	 31            /* ID最大字符数 */
 #define   DATA_SEPSTR    " \t\n\r" /* data.txt文件字段分割符 */
 #define   U_CHAR(x) (((x) >= 'a' && (x) <= 'z') ? ((x)&~32) : (x)) /* 字母转大写 */
 
-#define   MEM_CHECK(x)  (((x) == NULL) ? 101 : 0 )   /* 内存分配不成功会返回空值NULL，显示错误代码101(没有充分的内存),否则返回0(无错误) */
+#define   MEM_CHECK(x)  (((x) == NULL) ? 402 : 0 )   /* 内存分配不成功会返回空值NULL，显示错误代码402(没有充分的内存),否则返回0(无错误) */
 #define   ERR_CODE(x)  (errcode = ((errcode>100) ? (errcode) : (x))) /* 函数错误类型检查,如果错误代码大于100,则被认为是严重错误 */
 
 static void SafeFree(void **pp)          /* 安全释放内存函数：safeFree函数调用实际释放内存的free函数 */

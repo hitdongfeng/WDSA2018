@@ -115,6 +115,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="wdstext.h" />
     <ClInclude Include="wdstypes.h" />
     <ClInclude Include="wdsvars.h" />
   </ItemGroup>
