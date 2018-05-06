@@ -88,14 +88,6 @@ struct Decision_Variable
 };
 typedef struct Decision_Variable* PDecision_Variable;
 
-/* 定义工程队结构体 */
-struct Crew
-{
-	long cumulative_time;
-	PDecision_Variable Plan;
-};
-typedef struct Crew SCrew;
-
 /* 定义LinkedList链表指针结构体 */
 typedef struct _linkedlist
 {
@@ -104,5 +96,12 @@ typedef struct _linkedlist
 	PDecision_Variable current;	/* 当前指针，用于辅助遍历链表 */
 }LinkedList;
 
+/* 定义工程队结构体 */
+struct Crew
+{
+	long cumulative_time;
+	LinkedList Plan;
+};
+typedef struct Crew SCrew;
 
 #endif

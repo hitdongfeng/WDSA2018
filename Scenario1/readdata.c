@@ -12,7 +12,8 @@ Email: wdswater@gmail.com
 #include <math.h>
 #include <assert.h>
 #include "wdstext.h"
-#define EXTERN extern
+#include "wdstypes.h"
+#define EXTERN 
 #include "wdsvars.h"
 #define MAXERRS  5   /* 错误信息累积最大次数 */
 
@@ -45,7 +46,7 @@ int  str_comp(char *s1, char *s2)
 **  Purpose: case insensitive comparison of strings s1 & s2  
 **---------------------------------------------------------------*/
 {
-	for (int i = 0; UCHAR(s1[i]) == UCHAR(s2[i]); i++)
+	for (int i = 0; U_CHAR(s1[i]) == U_CHAR(s2[i]); i++)
 		if (!s1[i + 1] && !s2[i + 1]) return(1);
 	return(0);
 }                                       
@@ -291,9 +292,63 @@ int  Get_float(char *s, float *y)
 	return(1);
 }
 
+void Add_tail(LinkedList *list, int type, int index)
+/*--------------------------------------------------------------
+**  Input:   list: pointer to LinkedList array
+**			 type: 管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀
+**			 index: 管道数组索引,从0开始
+**  Output:  none
+**  Purpose: Add a Decision_Variable struct to the tail of the list
+**--------------------------------------------------------------*/
+{
+	PDecision_Variable p = (PDecision_Variable)calloc(1, sizeof(struct Decision_Variable));
+	p->type = type;
+	p->index = index;
+	p->next = NULL;
+
+	if (list->head == NULL)
+	{
+		list->head = p;
+	}
+	else
+	{
+		list->tail->next = p;
+	}
+	list->tail = p;
+}
+
+//void Add_plan(SCrew* crew, long time)
+//
+//{
+//	PDecision_Variable ptr;
+//
+//	for (int i = 0; i < MAX_CREWS; i++)
+//	{
+//		if (crew[i].cumulative_time == time)
+//		{
+//			ptr = linkedlist.head;
+//			if (linkedlist.head->next == NULL)
+//			{
+//				linkedlist.head = NULL;
+//				linkedlist.tail = NULL;
+//			}
+//			else
+//				linkedlist.head = linkedlist.head->next;
+//			
+//			ptr->next = NULL;
+//			
+//			if (crew[i].Plan.head = NULL)
+//				crew[i].Plan.head = ptr;
+//			else
+//				crew[i].Plan.tail->next= ptr;
+//			crew[i].Plan.tail = ptr;
+//		}
+//	}
+//
+//}
+
 int Initial_Solution()
-/*
-**--------------------------------------------------------------
+/*--------------------------------------------------------------
 **  Input:   none
 **  Output:  errcode code
 **  Purpose: processes  initialsolution data
@@ -303,29 +358,14 @@ int Initial_Solution()
 **--------------------------------------------------------------*/
 {
 	int x,y;
-	PDecision_Variable p;
 	
-
 	if (Ninivariables > 0)
 	{
-		p = (PDecision_Variable)calloc(1, sizeof(struct Decision_Variable));
 
 		if (!Get_int(Tok[0], &x))	return (403); /* 数值类型错误，含有非法字符 */	
 		if (!Get_int(Tok[1], &y))	return (403); /* 数值类型错误，含有非法字符 */
 
-		p->type = x;
-		p->index = y;
-		p->next = NULL;
-
-		if (linkedlist.head = NULL)
-		{
-			linkedlist.head = p;
-		}
-		else
-		{
-			linkedlist.tail->next = p;
-		}
-		linkedlist.tail = p;
+		Add_tail(&linkedlist, x, y);
 	}
 	return 0;
 }
@@ -341,9 +381,11 @@ int Breaks_Value()
 **  PipeID BreakID Diameter(mm)	pipes_closed_for_isolation Isolation_time(min) replacement(h)
 **--------------------------------------------------------------*/
 {
+	int errcode = 0;
 	int time1, time2;
 	float dia;
-	SFailurePipe* ptr= (SFailurePipe*)calloc(Ntokens - 5, sizeof(SFailurePipe));
+	SFailurePipe* ptr= (SFailurePipe*)calloc(Ntokens-5, sizeof(SFailurePipe));
+	ERR_CODE(MEM_CHECK(ptr)); if (errcode) return(402);
 
 	strncpy(BreaksRepository[break_count].pipeID, Tok[0], MAX_ID);
 	strncpy(BreaksRepository[break_count].nodeID, Tok[1], MAX_ID);
@@ -352,7 +394,7 @@ int Breaks_Value()
 	BreaksRepository[break_count].pipediameter = dia;
 
 	for (int i = 3; i < Ntokens - 2; i++)
-		strncpy(ptr[i].pipeID, Tok[i], MAX_ID);
+		strncpy(ptr[i-3].pipeID, Tok[i], MAX_ID);
 	BreaksRepository[break_count].pipes = ptr;
 
 	if (!Get_int(Tok[Ntokens - 2], &time1)) return (403); /* 数值类型错误，含有非法字符 */
@@ -362,7 +404,7 @@ int Breaks_Value()
 
 	break_count++;
 
-	return 0;
+	return (errcode);
 }
 
 int Leaks_Value()
@@ -494,4 +536,46 @@ int  readdata(char *f1, char *f2)
 	if (errsum > 0)  errcode = 406; //输入文件中有一处或多处错误
 
 	return (errcode);
+}
+
+void Emptymemory()
+/*--------------------------------------------------------------
+**  Input:   none
+**  Output:  none
+**  Purpose: free memory
+**--------------------------------------------------------------*/
+{
+	/* 释放BreaksRepository数组内存 */
+	for (int i = 0; i < Nbreaks; i++)
+	{
+		SafeFree(BreaksRepository[i].pipes);
+		SafeFree(BreaksRepository[i]);
+	}
+	/* 释放LeaksRepository数组内存 */
+	for (int i = 0; i < Nleaks; i++)
+		SafeFree(LeaksRepository[i]);
+
+	/* 释放Schedule数组内存 */
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		Schedule[i].Plan.current = Schedule[i].Plan.head;
+		while (Schedule[i].Plan.current != NULL)
+		{
+			Schedule[i].Plan.head = Schedule[i].Plan.head->next;
+			SafeFree(Schedule[i].Plan.current);
+			Schedule[i].Plan.current = Schedule[i].Plan.head;
+		}
+	}
+}
+
+int main(void)
+{
+	int errcode;
+
+	errcode = readdata("data.txt", "err.txt");
+
+	getchar();
+
+	return 0;
+
 }
