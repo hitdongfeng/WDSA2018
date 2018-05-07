@@ -9,7 +9,7 @@
 #define ERR403	"Data Error 403: the line contains illegal numeric value!\n"
 #define ERR404  "Data Error 404: following line section contains too many characters:\n" 
 #define ERR405  "Data Error 405: syntax error in section of %s!\n"
-#define ERR406  "Data Error 200: one or more errors in data.txt file.\n"
+#define ERR406  "Data Error 406: one or more errors in data.txt file.\n"
 
 
 

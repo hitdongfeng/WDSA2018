@@ -60,6 +60,7 @@ struct Breaks
 	int reopen_flag;		//阀门开启标识, 0:未开启; 1:开启
 	int isolate_time;		//隔离爆管所需要的时间(minutes)
 	int replace_time;		//爆管修复时间(hours)
+	int num_isovalve;		//隔离爆管所需要关闭的管道数量
 	char nodeID[MAX_ID + 1];//模拟爆管所添加的虚拟节点ID(将喷射系数设为0，以关闭爆管流量)
 	char pipeID[MAX_ID + 1];//爆管管道ID(将管道状态设置为open，以恢复供水)
 	float pipediameter;		//爆管管道直径(mm)

@@ -2,9 +2,6 @@
 ;Type	index
 2	3
 
-
-
-
 [BREAKS]
 
 ;Pipe ID	BreakID		Diameter(mm)	pipes closed for isolation	Isolation time(min)	replacement(h)

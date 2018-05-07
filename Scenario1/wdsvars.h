@@ -9,6 +9,7 @@ EXTERN int	Nbreaks,		/* 爆管管道数量 */
 			Nleaks,			/* 漏失管道数量 */
 			Ninivariables;	/* 初始解变量数量 */
 
+EXTERN FILE *InFile;		 /* data.txt文件指针 */
 EXTERN FILE *ErrFile;		/* 错误报告文件指针 */
 
 
@@ -17,7 +18,7 @@ EXTERN FILE *ErrFile;		/* 错误报告文件指针 */
 EXTERN	SBreaks*	BreaksRepository;	/* 爆管仓库指针(用于存储所有爆管) */
 EXTERN	SLeaks*		LeaksRepository;	/* 漏损管道仓库指针(用于存储所有漏损管道) */
 EXTERN	SCrew*		Schedule;			/* 工程队调度指针 */
-EXTERN	LinkedList	linkedlist;			/* 决策变量指针结构体(用于存储链表指针) */
+EXTERN	LinkedList	linkedlist;			/* 受损管道管道类型修复指针结构体(用于存储链表指针) */
 
 
 

@@ -19,7 +19,6 @@ Email: wdswater@gmail.com
 
 char *Tok[MAX_TOKS]; /* 定义字段数组，用于存储字段 */
 int Ntokens;		 /* data.txt中每行字段数量 */
-FILE *InFile;		 /* data.txt文件指针 */
 int	break_count;	 /* 爆管计数 */
 int	leak_count;		 /* 漏损管道计数 */
 
@@ -396,6 +395,7 @@ int Breaks_Value()
 	for (int i = 3; i < Ntokens - 2; i++)
 		strncpy(ptr[i-3].pipeID, Tok[i], MAX_ID);
 	BreaksRepository[break_count].pipes = ptr;
+	BreaksRepository[break_count].num_isovalve = Ntokens - 5;
 
 	if (!Get_int(Tok[Ntokens - 2], &time1)) return (403); /* 数值类型错误，含有非法字符 */
 	if (!Get_int(Tok[Ntokens - 1], &time2)) return (403); /* 数值类型错误，含有非法字符 */ 
@@ -568,11 +568,47 @@ void Emptymemory()
 	}
 }
 
+void File_close()
+/*----------------------------------------------------------------
+**  Input:   none
+**  Output:  none
+**  Returns: none
+**  Purpose: frees all memory & files used by BPDRR
+**----------------------------------------------------------------*/
+{
+	if (InFile != NULL) fclose(InFile);
+	if (ErrFile != NULL) fclose(ErrFile);
+}
+
+
 int main(void)
 {
 	int errcode;
 
 	errcode = readdata("data.txt", "err.txt");
+	fclose(ErrFile);
+
+	for (int i = 0; i < Nbreaks; i++)
+	{
+		printf("%s	%s	%f	", BreaksRepository[i].pipeID, BreaksRepository[i].nodeID, BreaksRepository[i].pipediameter);
+		for (int j = 0; j < BreaksRepository[i].num_isovalve; j++)
+			printf("%s ", BreaksRepository[i].pipes[j].pipeID);
+		printf("%d	%d,	%d	%d	%d\n",
+			BreaksRepository[i].isolate_time, BreaksRepository[i].replace_time, BreaksRepository[i].isolate_flag, BreaksRepository[i].replace_flag, BreaksRepository[i].reopen_flag);
+	}
+	printf("--------------------\n");
+	for (int i = 0; i < Nleaks; i++)
+	{
+		printf("%s	%s	%f	%d, %d	%d\n", LeaksRepository[i].pipeID, LeaksRepository[i].nodeID, LeaksRepository[i].pipediameter, LeaksRepository[i].repair_time, LeaksRepository[i].repair_flag, LeaksRepository[i].reopen_flag);
+	}
+
+	printf("--------------------\n");
+	linkedlist.current = linkedlist.head;
+	while (linkedlist.current != NULL)
+	{
+		printf("%d	%d\n", linkedlist.current->type, linkedlist.current->index);
+		linkedlist.current = linkedlist.current->next;
+	}
 
 	getchar();
 
