@@ -15,24 +15,46 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="wdstypes.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="wdsvars.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="wdstext.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="readdata.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
+    <None Include="BBM.inp">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="epanet2.dll">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="data.txt">
       <Filter>资源文件</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="epanet2.lib">
+      <Filter>资源文件</Filter>
+    </Library>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BPDRR\epanet2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BPDRR\wdsfuns.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BPDRR\wdstext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BPDRR\wdstypes.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BPDRR\wdsvars.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="BPDRR\readdata.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BPDRR\Sensitivity.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

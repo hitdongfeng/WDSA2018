@@ -18,6 +18,27 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="BBM.inp" />
+    <None Include="epanet2.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="data.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="epanet2.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BPDRR\epanet2.h" />
+    <ClInclude Include="BPDRR\wdsfuns.h" />
+    <ClInclude Include="BPDRR\wdstext.h" />
+    <ClInclude Include="BPDRR\wdstypes.h" />
+    <ClInclude Include="BPDRR\wdsvars.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="BPDRR\readdata.c" />
+    <ClCompile Include="BPDRR\Sensitivity.c" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{4BB5677F-E168-4322-BDBD-E503B321342A}</ProjectGuid>
@@ -115,17 +136,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="wdstext.h" />
-    <ClInclude Include="wdstypes.h" />
-    <ClInclude Include="wdsvars.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="readdata.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="data.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
