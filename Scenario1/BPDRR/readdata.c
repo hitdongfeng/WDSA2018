@@ -100,6 +100,8 @@ void Init_pointers()
 	LeaksRepository = NULL;		/* 漏损管道仓库指针(用于存储所有漏损管道) */
 	Schedule = NULL;			/* 工程队调度指针 */
 	initializeList(&linkedlist);/* 决策变量指针结构体 */
+	initializeList(&IniVisDemages);/* 模拟开始时刻(6:30)可见受损管道数组指针 */
+	initializeList(&NewVisDemages);/* 修复过程中新出现的可见受损管道数组指针 */
 }
 
 int  Str_match(char *str, char *substr)
@@ -364,7 +366,6 @@ int Initial_Solution()
 
 		if (!Get_int(Tok[0], &x))	return (403); /* 数值类型错误，含有非法字符 */	
 		if (!Get_int(Tok[1], &y))	return (403); /* 数值类型错误，含有非法字符 */
-
 		Add_tail(&linkedlist, x, y);
 	}
 	return 0;

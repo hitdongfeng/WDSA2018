@@ -14,7 +14,7 @@
 #define ERR408	"Input File Error 408: %s refers to undefined node!\n"
 #define ERR409	"Input File Error 409: %s refers to undefined pipe!\n"
 #define ERR410	"Input File Error 410: Unable to get correct emitter value!\n"
-
+#define ERR411	"Function Error 411: one or more errors in function Visible_Damages_initial()!\n"
 
 
 

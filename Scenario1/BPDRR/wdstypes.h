@@ -5,11 +5,15 @@
 /*-----------------------------
           全局常量的定义
 -----------------------------*/
-#define   MAX_LINE   500          /* data.txt文件每行最大字符数 */
-#define   MAX_TOKS   50           /* data.txt文件每行最大字段数 */
-#define   MAX_CREWS	 3			   /* 工程队数量 */
 
-#define	  MAX_ID	 31            /* ID最大字符数 */
+#define	  Ndemands	 4201		/* 管网需水量节点数量(需水量>0) */
+
+#define   MAX_CREWS	 3			/* 工程队数量 */
+#define   MAX_LINE   500        /* data.txt文件每行最大字符数 */
+#define   MAX_TOKS   50         /* data.txt文件每行最大字段数 */
+#define	  MAX_ID	 31         /* ID最大字符数 */
+
+
 #define   DATA_SEPSTR    " \t\n\r" /* data.txt文件字段分割符 */
 #define   U_CHAR(x) (((x) >= 'a' && (x) <= 'z') ? ((x)&~32) : (x)) /* 字母转大写 */
 
@@ -36,7 +40,14 @@ enum Pipe_Status
 	_Isolate=1,	//爆管隔离
 	_Replace,	//爆管替换
 	_Repair,	//漏损管道修复
-	_Reopen,	//阀门开启
+	_Reopen		//阀门开启
+};
+
+/* 定义受损管道类型 */
+enum Demage_type
+{
+	_Break=1,	//爆管
+	_Leak		//漏损
 };
 
 
@@ -110,5 +121,15 @@ struct Crew
 	LinkedList Plan;
 };
 typedef struct Crew SCrew;
+
+/* 定义visible demanges 管道结构体 */
+struct Cvisible
+{
+	int type;		/* 受损管道类型, 1:爆管; 2:漏损 */
+	int	Repoindex;	/* 管道在仓库数组中的索引(以0开始) */
+	long time;	/* Times of demage that is visible*/
+	struct Cvisible *next;
+};
+typedef struct Cvisible SCvisible;
 
 #endif

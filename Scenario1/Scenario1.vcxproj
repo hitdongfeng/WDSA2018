@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="BBM.inp" />
+    <None Include="BBM_Scenario1.inp" />
     <None Include="epanet2.dll" />
   </ItemGroup>
   <ItemGroup>

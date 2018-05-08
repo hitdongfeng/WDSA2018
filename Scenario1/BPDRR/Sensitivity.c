@@ -35,7 +35,7 @@ void Open_inp_file(char *f1, char *f2, char *f3)
 	}
 }
 
-int Get_FailurePipe_Attribute()
+void Get_FailurePipe_Attribute()
 /**----------------------------------------------------------------
 **  输入:  无
 **  输出:  无
@@ -101,30 +101,112 @@ int Get_FailurePipe_Attribute()
 		}
 		LeaksRepository[i].emittervalue = emitter;
 	}
+}
+
+int Add_Visdemage_tail(LinkedList *list, int type, int index,long time)
+/*--------------------------------------------------------------
+**  Input:   list: pointer to LinkedList array
+**			 type: 受损管道类型, 1:爆管; 2:漏损
+**			 index: 管道在仓库数组中的索引(以0开始)
+**			 time:	Times of demage that is visible
+**  Output:  none
+**  Purpose: Add a visible demanges struct to the tail of the list
+**--------------------------------------------------------------*/
+{
+	int errcode = 0; /* 初始化错误代码 */
+	SCvisible *p;	/* 临时变量，用于存储可见爆管或漏损管道信息 */
+	p = (SCvisible*)calloc(1, sizeof(SCvisible));
+	ERR_CODE(MEM_CHECK(p));	if (errcode) return 402;
+	p->time = time;
+	p->type = type;
+	p->Repoindex = index;
+	p->next = NULL;
+
+	if (list->head == NULL)
+	{
+		list->head = p;
+	}
+	else
+	{
+		list->tail->next = p;
+	}
+	list->tail = p;
+
 	return errcode;
 }
+
+
+int Visible_Damages_initial()
+/**----------------------------------------------------------------
+**  输入:  无
+**  输出:  Error code
+**  功能:  获取模拟开始时可见爆管或漏损管道信息
+**----------------------------------------------------------------*/
+{
+	int errcode = 0, errsum=0;
+	long t, tstep;		/* t: 当前时刻; tstep: 水力计算时间步长 */ 
+	float flow;	/* 临时变量，用于存储泄流量 */
+	
+
+	//run epanet analysis engine
+	ENsetstatusreport(0);		/* No Status reporting */
+	ENsetreport("MESSAGES NO"); /* No Status reporting */
+	ERR_CODE(ENopenH());	if (errcode>100) errsum++;	/* Opens the hydraulics analysis system. */
+	ERR_CODE(ENinitH(0));	if (errcode>100) errsum++;	/* Don't save the hydraulics file */
+
+	do 
+	{
+		ERR_CODE(ENrunH(&t)); if (errcode>100) errsum++;
+		if (t == 1800) /* Begin the restoration */
+		{
+			/* 遍历所有爆管 */
+			for (int i = 0; i < Nbreaks; i++)
+			{
+				ERR_CODE(ENgetnodevalue(BreaksRepository[i].nodeindex, EN_DEMAND, &flow));
+				if (BreaksRepository[i].pipediameter >= 150 || flow > 2.5)
+					errcode = Add_Visdemage_tail(&IniVisDemages, _Break, i, 1800);
+				if (errcode>100)	errsum++;
+			}
+
+			/* 遍历所有漏损管道 */
+			for (int i = 0; i < Nleaks; i++)
+			{
+				ERR_CODE(ENgetnodevalue(LeaksRepository[i].nodeindex, EN_DEMAND, &flow));
+				if (LeaksRepository[i].pipediameter >= 300 || flow > 2.5)
+					errcode = Add_Visdemage_tail(&IniVisDemages, _Leak, i, 1800);
+				if (errcode>100)	errsum++;
+			}
+			
+		}
+		ERR_CODE(ENnextH(&tstep));	if (errcode>100) errsum++;
+	} while (tstep>0);
+	ERR_CODE(ENcloseH());	if (errcode>100) errsum++;
+
+	if (errsum > 0) errcode = 411;
+	return errcode;
+}
+
+
+
+
+
 
 int main(void)
 {
 	int errcode = 0;
 
 	errcode = readdata("data.txt", "err.txt");
-	Open_inp_file("BBM.inp", "1.rpt", "");
-	ERR_CODE(Get_FailurePipe_Attribute());
-
-	for (int i = 0; i < Nbreaks; i++)
-	{
-		printf("nodeindex= %d	pipeindex= %d	emittervalue= %f	", BreaksRepository[i].nodeindex, BreaksRepository[i].pipeindex, BreaksRepository[i].emittervalue);
-		for (int j = 0; j < BreaksRepository[i].num_isovalve; j++)
-			printf("%d ", BreaksRepository[i].pipes[j].pipeindex);
-		printf("\n");
+	if (errcode){
+		fprintf(ErrFile, ERR406);
+		return (406);
 	}
-	printf("--------------------\n");
+	Open_inp_file("BBM_Scenario1.inp", "BBM_Scenario1.rpt", "");
+	Get_FailurePipe_Attribute();
 
-	for (int i = 0; i < Nleaks; i++)
-	{
-		printf("nodeindex= %d	pipeindex= %d	emittervalue= %f	", LeaksRepository[i].nodeindex, LeaksRepository[i].pipeindex, LeaksRepository[i].emittervalue);
-		printf("\n");
+	ERR_CODE(Visible_Damages_initial());
+	if (errcode) {
+		fprintf(ErrFile, ERR411);
+		return (411);
 	}
 
 

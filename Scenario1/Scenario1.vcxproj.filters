@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="BBM.inp">
+    <None Include="epanet2.dll">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="epanet2.dll">
+    <None Include="BBM_Scenario1.inp">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>
