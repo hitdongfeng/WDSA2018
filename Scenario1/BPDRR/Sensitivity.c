@@ -31,7 +31,6 @@ void Open_inp_file(char *f1, char *f2, char *f3)
 	if (errcode)
 	{
 		fprintf(ErrFile, ERR407);
-		return (407);
 	}
 }
 
@@ -49,32 +48,25 @@ void Get_FailurePipe_Attribute()
 	for (int i = 0; i < Nbreaks; i++)
 	{
 		ERR_CODE(ENgetnodeindex(BreaksRepository[i].nodeID, &nodeindex));
-		if (errcode){
-			fprintf(ErrFile, ERR408, BreaksRepository[i].nodeID);
-			return (408);
-		}
+		if (errcode) fprintf(ErrFile, ERR408, BreaksRepository[i].nodeID);
+
 		BreaksRepository[i].nodeindex = nodeindex;
 
 		ERR_CODE(ENgetlinkindex(BreaksRepository[i].pipeID, &pipeindex1));
-		if (errcode) {
-			fprintf(ErrFile, ERR409, BreaksRepository[i].pipeID);
-			return (409);
-		}
+		if (errcode) fprintf(ErrFile, ERR409, BreaksRepository[i].pipeID);
+			
 		BreaksRepository[i].pipeindex = pipeindex1;
 
 		ERR_CODE(ENgetnodevalue(nodeindex, EN_EMITTER, &emitter));
-		if (errcode) {
-			fprintf(ErrFile, ERR410);
-		}
+		if (errcode) fprintf(ErrFile, ERR410);
+			
 		BreaksRepository[i].emittervalue = emitter;
 
 		for (int j = 0; j < BreaksRepository[i].num_isovalve; j++)
 		{
 			ERR_CODE(ENgetlinkindex(BreaksRepository[i].pipes[j].pipeID, &pipeindex2));
-			if (errcode) {
-				fprintf(ErrFile, ERR408, BreaksRepository[i].pipes[j].pipeID);
-				return (408);
-			}
+			if (errcode) fprintf(ErrFile, ERR408, BreaksRepository[i].pipes[j].pipeID);
+				
 			BreaksRepository[i].pipes[j].pipeindex = pipeindex2;
 		}
 	}
@@ -82,28 +74,23 @@ void Get_FailurePipe_Attribute()
 	for (int i = 0; i < Nleaks; i++)
 	{
 		ERR_CODE(ENgetnodeindex(LeaksRepository[i].nodeID, &nodeindex));
-		if (errcode) {
-			fprintf(ErrFile, ERR408, LeaksRepository[i].nodeID);
-			return (408);
-		}
+		if (errcode) fprintf(ErrFile, ERR408, LeaksRepository[i].nodeID);
+			
 		LeaksRepository[i].nodeindex = nodeindex;
 
 		ERR_CODE(ENgetlinkindex(LeaksRepository[i].pipeID, &pipeindex1));
-		if (errcode) {
-			fprintf(ErrFile, ERR409,LeaksRepository[i].pipeID);
-			return (409);
-		}
+		if (errcode) fprintf(ErrFile, ERR409,LeaksRepository[i].pipeID);
+			
 		LeaksRepository[i].pipeindex = pipeindex1;
 
 		ERR_CODE(ENgetnodevalue(nodeindex, EN_EMITTER, &emitter));
-		if (errcode) {
-			fprintf(ErrFile, ERR410);
-		}
+		if (errcode) fprintf(ErrFile, ERR410);
+			
 		LeaksRepository[i].emittervalue = emitter;
 	}
 }
 
-int Add_Visdemage_tail(LinkedList *list, int type, int index,long time)
+int Add_Visdemage_tail(VisiableList *list, int type, int index,long time)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to LinkedList array
 **			 type: 受损管道类型, 1:爆管; 2:漏损
@@ -176,7 +163,6 @@ int Visible_Damages_initial()
 					errcode = Add_Visdemage_tail(&IniVisDemages, _Leak, i, 1800);
 				if (errcode>100)	errsum++;
 			}
-			
 		}
 		ERR_CODE(ENnextH(&tstep));	if (errcode>100) errsum++;
 	} while (tstep>0);
@@ -207,6 +193,13 @@ int main(void)
 	if (errcode) {
 		fprintf(ErrFile, ERR411);
 		return (411);
+	}
+
+	IniVisDemages.current = IniVisDemages.head;
+	while (IniVisDemages.current != NULL)
+	{
+		printf("type:%d		index:%d		time:%d\n", IniVisDemages.current->type, IniVisDemages.current->Repoindex, IniVisDemages.current->time);
+		IniVisDemages.current = IniVisDemages.current->next;
 	}
 
 

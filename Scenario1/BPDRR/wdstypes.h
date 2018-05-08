@@ -132,4 +132,12 @@ struct Cvisible
 };
 typedef struct Cvisible SCvisible;
 
+/* 定义VisiableList链表指针结构体 */
+typedef struct _visiablelist
+{
+	SCvisible* head;	/* 指向头节点指针 */
+	SCvisible* tail;	/* 指向尾节点指针 */
+	SCvisible* current;	/* 当前指针，用于辅助遍历链表 */
+}VisiableList;
+
 #endif
