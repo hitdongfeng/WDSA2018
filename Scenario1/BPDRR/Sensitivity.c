@@ -172,39 +172,87 @@ int Visible_Damages_initial()
 	return errcode;
 }
 
-
-
-
-
-
-int main(void)
+int GetDemand(char* f1, long time)
+/**----------------------------------------------------------------
+**  输入:  f1:inp文件指针; time: 模拟时刻（以秒计）
+**  输出:  Error code
+**  功能:  获取指定模拟时刻需水量节点实际需水量
+**----------------------------------------------------------------*/
 {
-	int errcode = 0;
+	int s;
+	int errcode = 0, errsum = 0;
+	long t, tstep;		/* t: 当前时刻; tstep: 水力计算时间步长 */
+	float demand;		/* 临时变量，用于存储泄流量 */
 
-	errcode = readdata("data.txt", "err.txt");
-	if (errcode){
-		fprintf(ErrFile, ERR406);
-		return (406);
-	}
-	Open_inp_file("BBM_Scenario1.inp", "BBM_Scenario1.rpt", "");
-	Get_FailurePipe_Attribute();
+	s = (time / 3600) % 24; //当前时刻所对应的时段
+	/* run epanet analysis engine */
+	Open_inp_file(f1, "BBM_EPS.rpt", "");
+	ENsetstatusreport(0);		/* No Status reporting */
+	ENsetreport("MESSAGES NO"); /* No Status reporting */
+	ERR_CODE(ENopenH());	if (errcode > 100) errsum++;	/* Opens the hydraulics analysis system. */
+	ERR_CODE(ENinitH(0));	if (errcode > 100) errsum++;	/* Don't save the hydraulics file */
 
-	ERR_CODE(Visible_Damages_initial());
-	if (errcode) {
-		fprintf(ErrFile, ERR411);
-		return (411);
-	}
-
-	IniVisDemages.current = IniVisDemages.head;
-	while (IniVisDemages.current != NULL)
+	do 
 	{
-		printf("type:%d		index:%d		time:%d\n", IniVisDemages.current->type, IniVisDemages.current->Repoindex, IniVisDemages.current->time);
-		IniVisDemages.current = IniVisDemages.current->next;
-	}
+		ERR_CODE(ENrunH(&t)); if (errcode>100) errsum++;
+		if (t == s*3600) /* Begin the restoration */
+		{
+			for (int i = 0; i < Ndemands; i++)
+			{
+				ERR_CODE(ENgetnodevalue(i+1, EN_DEMAND, &demand));
+				if (errcode > 100) errsum++;
+				ActuralDemand[i] = demand;
+			}
+			break;
+		}
+		ERR_CODE(ENnextH(&tstep));	if (errcode>100) errsum++;
+	} while (tstep>0);
+	
+	ERR_CODE(ENcloseH());	if (errcode > 100) errsum++;
+	ERR_CODE(ENclose());	if (errcode > 100) errsum++;
 
-
-
-	getchar();
-	fclose(ErrFile);
+	if (errsum > 0) errcode = 412;
 	return errcode;
 }
+
+
+
+
+//int main(void)
+//{
+//	int errcode = 0;
+//
+//	errcode = readdata("data.txt", "err.txt");
+//	if (errcode){
+//		fprintf(ErrFile, ERR406);
+//		return (406);
+//	}
+//	/*Open_inp_file("BBM_Scenario1.inp", "BBM_Scenario1.rpt", "");
+//	Get_FailurePipe_Attribute();
+//
+//	ERR_CODE(Visible_Damages_initial());
+//	if (errcode) {
+//		fprintf(ErrFile, ERR411);
+//		return (411);
+//	}
+//
+//	IniVisDemages.current = IniVisDemages.head;
+//	while (IniVisDemages.current != NULL)
+//	{
+//		printf("type:%d		index:%d		time:%d\n", IniVisDemages.current->type, IniVisDemages.current->Repoindex, IniVisDemages.current->time);
+//		IniVisDemages.current = IniVisDemages.current->next;
+//	}*/
+//
+//	errcode = GetDemand("BBM_EPS.inp", 93600);
+//	if (errcode) {
+//		fprintf(ErrFile, ERR412);
+//		return (412);
+//	}
+//
+//
+//
+//
+//	getchar();
+//	fclose(ErrFile);
+//	return errcode;
+//}

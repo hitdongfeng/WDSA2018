@@ -1,9 +1,15 @@
+[Key_Facility]
+;ID
+43816	
+32955	
+21643	
+54531
+
 [Initial_Solution]
 ;Type	index
 2	3
 
 [BREAKS]
-
 ;Pipe ID	BreakID		Diameter(mm)	pipes closed for isolation	Isolation time(min)	replacement(h)
 437	E437	500	169	623	4384	45	14			
 3602	E3602	200	3602	30	7					

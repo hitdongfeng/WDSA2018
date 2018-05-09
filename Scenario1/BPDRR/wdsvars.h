@@ -5,7 +5,8 @@
 #define WDSVARS_H
 #include "wdstypes.h"
 
-EXTERN int	Nbreaks,		/* 爆管管道数量 */
+EXTERN int	Nfacility,		/* 关键设施数量 */
+			Nbreaks,		/* 爆管管道数量 */
 			Nleaks,			/* 漏失管道数量 */
 			Ninivariables;	/* 初始解变量数量 */
 
@@ -14,13 +15,14 @@ EXTERN FILE *ErrFile;		/* 错误报告文件指针 */
 
 
 //EXTERN	PDecision_Variable	Part_init_solution; /* 初始解指针 */
+EXTERN	SFailurePipe* Keyfacility;		/* 基础设施结构体指针 */
 EXTERN	SBreaks*	BreaksRepository;	/* 爆管仓库指针(用于存储所有爆管) */
 EXTERN	SLeaks*		LeaksRepository;	/* 漏损管道仓库指针(用于存储所有漏损管道) */
 EXTERN	SCrew*		Schedule;			/* 工程队调度指针 */
 EXTERN	LinkedList	linkedlist;			/* 受损管道管道类型修复指针结构体(用于存储链表指针) */
-EXTERN	VisiableList	IniVisDemages;		/* 模拟开始时刻(6:30)可见受损管道数组指针 */
-EXTERN	VisiableList	NewVisDemages;		/* 修复过程中新出现的可见受损管道数组指针 */
-
+EXTERN	VisiableList	IniVisDemages;	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
+EXTERN	VisiableList	NewVisDemages;	/* 修复过程中新出现的可见受损管道数组指针 */
+EXTERN	float*	ActuralDemand;			/* 节点实际需水量数组指针 */
 
 
 

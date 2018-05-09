@@ -18,13 +18,15 @@ Email: wdswater@gmail.com
 #define MAXERRS  5   /* 错误信息累积最大次数 */
 
 FILE *InFile;
-char *Tok[MAX_TOKS]; /* 定义字段数组，用于存储字段 */
-int Ntokens;		 /* data.txt中每行字段数量 */
-int	break_count;	 /* 爆管计数 */
-int	leak_count;		 /* 漏损管道计数 */
+char *Tok[MAX_TOKS];	/* 定义字段数组，用于存储字段 */
+int Ntokens;			/* data.txt中每行字段数量 */
+int keyfacility_count;	/* 关键基础设施计数 */
+int	break_count;		/* 爆管计数 */
+int	leak_count;			/* 漏损管道计数 */
 
 /* 定义data.txt文件标题数组 */
-char *Sect_Txt[] = { "[Initial_Solution]",
+char *Sect_Txt[] = {"[Key_Facility]", 
+					"[Initial_Solution]",
 					"[BREAKS]",
 					"[LEAKS]",
 					NULL
@@ -32,6 +34,7 @@ char *Sect_Txt[] = { "[Initial_Solution]",
 
 /* 定义data.txt文件标题枚举 */
 enum Sect_Type {
+	_Key_Facility,
 	_Initial_Solution,
 	_BREAKS,
 	_LEAKS,
@@ -88,6 +91,20 @@ void initializeList(LinkedList *list)
 	list->current = NULL;
 }
 
+
+void iniVisiableList(VisiableList *list)
+/*----------------------------------------------------------------
+**  Input:   *list, pointer to list
+**  Output:  none
+**  Purpose: initializes VisiableList pointers to NULL
+**----------------------------------------------------------------*/
+{
+	list->head = NULL;
+	list->tail = NULL;
+	list->current = NULL;
+}
+
+
 void Init_pointers()
 /*----------------------------------------------------------------
 **  Input:   none
@@ -96,12 +113,14 @@ void Init_pointers()
 **----------------------------------------------------------------*/
 {
 	//Part_init_solution = NULL;	/* 初始解指针 */
-	BreaksRepository = NULL;	/* 爆管仓库指针(用于存储所有爆管) */
-	LeaksRepository = NULL;		/* 漏损管道仓库指针(用于存储所有漏损管道) */
-	Schedule = NULL;			/* 工程队调度指针 */
-	initializeList(&linkedlist);/* 决策变量指针结构体 */
-	initializeList(&IniVisDemages);/* 模拟开始时刻(6:30)可见受损管道数组指针 */
-	initializeList(&NewVisDemages);/* 修复过程中新出现的可见受损管道数组指针 */
+	Keyfacility = NULL;				/* 基础设施结构体指针 */
+	BreaksRepository = NULL;		/* 爆管仓库指针(用于存储所有爆管) */
+	LeaksRepository = NULL;			/* 漏损管道仓库指针(用于存储所有漏损管道) */
+	Schedule = NULL;				/* 工程队调度指针 */
+	initializeList(&linkedlist);	/* 决策变量指针结构体 */
+	iniVisiableList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
+	iniVisiableList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
+	ActuralDemand = NULL;			/* 节点实际需水量数组指针 */
 }
 
 int  Str_match(char *str, char *substr)
@@ -157,6 +176,7 @@ void  Get_count()
 	int   sect, newsect;        /* data.txt sections          */
 
 	/* Initialize network component counts */
+	Nfacility = 0;		/* 关键基础设施数量 */
 	Nbreaks = 0;		/* 爆管管道数量 */
 	Nleaks = 0;			/* 漏失管道数量 */
 	Ninivariables = 0;	/* 初始解变量数量 */
@@ -185,6 +205,7 @@ void  Get_count()
 		/* Add to count of current component */
 		switch (sect)
 		{
+			case _Key_Facility:	Nfacility++;	break;
 			case _Initial_Solution:  Ninivariables++;    break;
 			case _BREAKS:	Nbreaks++;	break;
 			case _LEAKS:	Nleaks++;	break;
@@ -203,6 +224,8 @@ int  Alloc_Memory()
 {
 	int errcode = 0, err_count = 0;
 	
+	Keyfacility = (SFailurePipe*)calloc(Nfacility, sizeof(SFailurePipe));
+
 	if (Nbreaks > 0)
 		BreaksRepository = (SBreaks*)calloc(Nbreaks, sizeof(SBreaks));
 
@@ -214,6 +237,8 @@ int  Alloc_Memory()
 	ERR_CODE(MEM_CHECK(BreaksRepository));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(LeaksRepository));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(Schedule));	if (errcode) err_count++;
+
+	ActuralDemand = (float*)calloc(Ndemands, sizeof(float));
 
 	if (err_count)
 	{
@@ -349,6 +374,25 @@ void Add_tail(LinkedList *list, int type, int index)
 //
 //}
 
+int Key_facility()
+/*--------------------------------------------------------------
+**  Input:   none
+**  Output:  errcode code
+**  Purpose: processes  key facility data
+**  Format:
+**	[Key_Facility]
+**  ;ID
+**--------------------------------------------------------------*/
+{
+	if (Nfacility > 0)
+	{
+		strncpy(Keyfacility[keyfacility_count].pipeID, Tok[0], MAX_ID);
+	}
+	keyfacility_count++;
+
+	return 0;
+}
+
 int Initial_Solution()
 /*--------------------------------------------------------------
 **  Input:   none
@@ -447,6 +491,7 @@ int  newline(int sect, char *line)
 {
 	switch (sect)
 	{
+	case _Key_Facility: return(Key_facility()); break;
 	case _Initial_Solution:	return(Initial_Solution()); break;
 	case _BREAKS:	return(Breaks_Value()); break;
 	case _LEAKS:	return(Leaks_Value()); break;
@@ -469,6 +514,7 @@ int  readdata(char *f1, char *f2)
 	int		sect, newsect;        /* Data sections                   */
 	
 	Ntokens = 0;			/* 每行字段数量 */
+	keyfacility_count;		/* 关键基础设施技术 */
 	break_count = 0;	    /* 爆管计数 */
 	leak_count = 0;			/* 漏损管道计数 */
 
@@ -589,6 +635,10 @@ void Emptymemory()
 //
 //	errcode = readdata("data.txt", "err.txt");
 //	fclose(ErrFile);
+//
+//	for (int i = 0; i < Nfacility; i++)
+//		printf("%s	", Keyfacility[i].pipeID);
+//	printf("\n--------------------\n");
 //
 //	for (int i = 0; i < Nbreaks; i++)
 //	{

@@ -140,4 +140,12 @@ typedef struct _visiablelist
 	SCvisible* current;	/* 当前指针，用于辅助遍历链表 */
 }VisiableList;
 
+/* 定义系统供水能力结构体 */
+typedef struct _sercapacity
+{
+	float SystemFun;	/* 系统整体供水能力 */
+	int Numkeyfac; /* 满足供水能力的关键基础设施数量 */
+	float MeankeyFunc; /* 基础设施平均供水能力 */
+}Sercapacity;
+
 #endif

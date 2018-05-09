@@ -21,6 +21,9 @@
     <None Include="BBM_Scenario1.inp">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="BBM_EPS.inp">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="data.txt">
