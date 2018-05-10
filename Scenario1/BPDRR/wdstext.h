@@ -15,7 +15,8 @@
 #define ERR409	"Input File Error 409: %s refers to undefined pipe!\n"
 #define ERR410	"Input File Error 410: Unable to get correct emitter value!\n"
 #define ERR411	"Function Error 411: one or more errors in function Visible_Damages_initial()!\n"
-#define ERR412	"Function Error 411: one or more errors in function Get_Actural_Demand()!\n"
+#define ERR412	"Function Error 412: one or more errors in function Get_Actural_Demand()!\n"
+#define ERR413	"Function Error 413: one or more errors in function GetSerCapcity!\n"
 
 
 #endif

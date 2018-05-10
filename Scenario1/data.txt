@@ -1,9 +1,12 @@
-[Key_Facility]
-;ID
-43816	
-32955	
-21643	
-54531
+[Hospital]
+;nodeID		pipeID
+43816	C43816	
+32955	C32955
+
+[Firefight]
+;pipeID		Design_flow(L/s)
+C21643	35	
+C54531	35
 
 [Initial_Solution]
 ;Type	index

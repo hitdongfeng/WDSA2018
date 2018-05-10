@@ -20,12 +20,14 @@ Email: wdswater@gmail.com
 FILE *InFile;
 char *Tok[MAX_TOKS];	/* 定义字段数组，用于存储字段 */
 int Ntokens;			/* data.txt中每行字段数量 */
-int keyfacility_count;	/* 关键基础设施计数 */
+int hospital_count;		/* 医院设施计数 */
+int	firefight_count;	/* 消火栓计数 */
 int	break_count;		/* 爆管计数 */
 int	leak_count;			/* 漏损管道计数 */
 
 /* 定义data.txt文件标题数组 */
-char *Sect_Txt[] = {"[Key_Facility]", 
+char *Sect_Txt[] = {"[Hospital]", 
+					"[Firefight]",
 					"[Initial_Solution]",
 					"[BREAKS]",
 					"[LEAKS]",
@@ -34,7 +36,8 @@ char *Sect_Txt[] = {"[Key_Facility]",
 
 /* 定义data.txt文件标题枚举 */
 enum Sect_Type {
-	_Key_Facility,
+	_Hospital,
+	_Firefight,
 	_Initial_Solution,
 	_BREAKS,
 	_LEAKS,
@@ -91,7 +94,6 @@ void initializeList(LinkedList *list)
 	list->current = NULL;
 }
 
-
 void iniVisiableList(VisiableList *list)
 /*----------------------------------------------------------------
 **  Input:   *list, pointer to list
@@ -104,7 +106,6 @@ void iniVisiableList(VisiableList *list)
 	list->current = NULL;
 }
 
-
 void Init_pointers()
 /*----------------------------------------------------------------
 **  Input:   none
@@ -113,14 +114,15 @@ void Init_pointers()
 **----------------------------------------------------------------*/
 {
 	//Part_init_solution = NULL;	/* 初始解指针 */
-	Keyfacility = NULL;				/* 基础设施结构体指针 */
+	Hospitals = NULL;				/* 医院设施结构体指针 */
+	Firefighting = NULL;			/* 消火栓结构体指针 */
 	BreaksRepository = NULL;		/* 爆管仓库指针(用于存储所有爆管) */
 	LeaksRepository = NULL;			/* 漏损管道仓库指针(用于存储所有漏损管道) */
 	Schedule = NULL;				/* 工程队调度指针 */
 	initializeList(&linkedlist);	/* 决策变量指针结构体 */
 	iniVisiableList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
 	iniVisiableList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
-	ActuralDemand = NULL;			/* 节点实际需水量数组指针 */
+	ActuralBaseDemand = NULL;			/* 节点实际需水量数组指针 */
 }
 
 int  Str_match(char *str, char *substr)
@@ -168,7 +170,7 @@ void  Get_count()
 /*--------------------------------------------------------------
 **  Input:   none
 **  Output:  none
-**  Purpose: determines number of breaks, leaks and inivarialbles
+**  Purpose: determines number of system elements
 **--------------------------------------------------------------*/
 {
 	char  line[MAX_LINE + 1];	/* Line from data.txt file    */
@@ -176,7 +178,8 @@ void  Get_count()
 	int   sect, newsect;        /* data.txt sections          */
 
 	/* Initialize network component counts */
-	Nfacility = 0;		/* 关键基础设施数量 */
+	Nhospital = 0;		/* 医院基础设施数量 */
+	Nfirefight = 0;		/* 消火栓数量 */
 	Nbreaks = 0;		/* 爆管管道数量 */
 	Nleaks = 0;			/* 漏失管道数量 */
 	Ninivariables = 0;	/* 初始解变量数量 */
@@ -205,7 +208,8 @@ void  Get_count()
 		/* Add to count of current component */
 		switch (sect)
 		{
-			case _Key_Facility:	Nfacility++;	break;
+			case _Hospital:	Nhospital++;	break;
+			case _Firefight: Nfirefight++;	break;
 			case _Initial_Solution:  Ninivariables++;    break;
 			case _BREAKS:	Nbreaks++;	break;
 			case _LEAKS:	Nleaks++;	break;
@@ -224,7 +228,8 @@ int  Alloc_Memory()
 {
 	int errcode = 0, err_count = 0;
 	
-	Keyfacility = (SFailurePipe*)calloc(Nfacility, sizeof(SFailurePipe));
+	Hospitals = (SHospital*)calloc(Nhospital, sizeof(SHospital));
+	Firefighting = (SFirefight*)calloc(Nfirefight, sizeof(SFirefight));
 
 	if (Nbreaks > 0)
 		BreaksRepository = (SBreaks*)calloc(Nbreaks, sizeof(SBreaks));
@@ -234,11 +239,14 @@ int  Alloc_Memory()
 
 	Schedule = (SCrew*)calloc(MAX_CREWS, sizeof(SCrew));
 
+	ActuralBaseDemand = (float*)calloc(Ndemands, sizeof(float));
+
+	ERR_CODE(MEM_CHECK(Hospitals));	if (errcode) err_count++;
+	ERR_CODE(MEM_CHECK(Firefighting));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(BreaksRepository));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(LeaksRepository));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(Schedule));	if (errcode) err_count++;
-
-	ActuralDemand = (float*)calloc(Ndemands, sizeof(float));
+	ERR_CODE(MEM_CHECK(ActuralBaseDemand));	if (errcode) err_count++;
 
 	if (err_count)
 	{
@@ -374,21 +382,44 @@ void Add_tail(LinkedList *list, int type, int index)
 //
 //}
 
-int Key_facility()
+int Hospital_data()
 /*--------------------------------------------------------------
 **  Input:   none
 **  Output:  errcode code
-**  Purpose: processes  key facility data
+**  Purpose: processes  hospital data
 **  Format:
-**	[Key_Facility]
+**	[Hospital]
 **  ;ID
 **--------------------------------------------------------------*/
 {
-	if (Nfacility > 0)
+	if (Nhospital > 0)
 	{
-		strncpy(Keyfacility[keyfacility_count].pipeID, Tok[0], MAX_ID);
+		strncpy(Hospitals[hospital_count].nodeID, Tok[0], MAX_ID);
+		strncpy(Hospitals[hospital_count].pipeID, Tok[1], MAX_ID);
 	}
-	keyfacility_count++;
+	hospital_count++;
+
+	return 0;
+}
+
+int Firefight_data()
+/*--------------------------------------------------------------
+**  Input:   none
+**  Output:  errcode code
+**  Purpose: processes  firefighting data
+**  Format:
+**	[Hospital]
+**  ;ID		Design_flow(L/s)
+**--------------------------------------------------------------*/
+{
+	float x;
+	if (Nfirefight > 0)
+	{
+		strncpy(Firefighting[firefight_count].ID, Tok[0], MAX_ID);
+		if (!Get_float(Tok[1], &x))	return (403); /* 数值类型错误，含有非法字符 */
+		Firefighting[firefight_count].fire_flow = x;
+	}
+	firefight_count++;
 
 	return 0;
 }
@@ -491,7 +522,8 @@ int  newline(int sect, char *line)
 {
 	switch (sect)
 	{
-	case _Key_Facility: return(Key_facility()); break;
+	case _Hospital: return(Hospital_data()); break;
+	case _Firefight: return(Firefight_data()); break;
 	case _Initial_Solution:	return(Initial_Solution()); break;
 	case _BREAKS:	return(Breaks_Value()); break;
 	case _LEAKS:	return(Leaks_Value()); break;
@@ -514,7 +546,8 @@ int  readdata(char *f1, char *f2)
 	int		sect, newsect;        /* Data sections                   */
 	
 	Ntokens = 0;			/* 每行字段数量 */
-	keyfacility_count;		/* 关键基础设施技术 */
+	hospital_count=0;		/* 医院设施计数 */
+	firefight_count = 0;	/* 消火栓计数 */
 	break_count = 0;	    /* 爆管计数 */
 	leak_count = 0;			/* 漏损管道计数 */
 
@@ -636,8 +669,12 @@ void Emptymemory()
 //	errcode = readdata("data.txt", "err.txt");
 //	fclose(ErrFile);
 //
-//	for (int i = 0; i < Nfacility; i++)
-//		printf("%s	", Keyfacility[i].pipeID);
+//	for (int i = 0; i < Nhospital; i++)
+//		printf("%s	\n", Hospitals[i].pipeID);
+//	printf("\n--------------------\n");
+//
+//	for (int i = 0; i < Nfirefight; i++)
+//		printf("%s	%f\n", Firefighting[i].ID,Firefighting[i].fire_flow);
 //	printf("\n--------------------\n");
 //
 //	for (int i = 0; i < Nbreaks; i++)

@@ -7,6 +7,7 @@
 -----------------------------*/
 
 #define	  Ndemands	 4201		/* 管网需水量节点数量(需水量>0) */
+#define	  Start_nodeindex	6440/* pdd模型节点索引起始值(pdd模型节点水量为0，由对应的节点水库代替) */
 
 #define   MAX_CREWS	 3			/* 工程队数量 */
 #define   MAX_LINE   500        /* data.txt文件每行最大字符数 */
@@ -16,7 +17,6 @@
 
 #define   DATA_SEPSTR    " \t\n\r" /* data.txt文件字段分割符 */
 #define   U_CHAR(x) (((x) >= 'a' && (x) <= 'z') ? ((x)&~32) : (x)) /* 字母转大写 */
-
 #define   MEM_CHECK(x)  (((x) == NULL) ? 402 : 0 )   /* 内存分配不成功会返回空值NULL，显示错误代码402(没有充分的内存),否则返回0(无错误) */
 #define   ERR_CODE(x)  (errcode = ((errcode>100) ? (errcode) : (x))) /* 函数错误类型检查,如果错误代码大于100,则被认为是严重错误 */
 
@@ -62,6 +62,26 @@ struct FailurePipe
 	int pipeindex;				//故障管道索引(以1开始)
 };
 typedef struct FailurePipe SFailurePipe;
+
+/* 定义医院设施结构体 */
+struct Hospital
+{
+	char nodeID[MAX_ID + 1];	//医院节点ID
+	char pipeID[MAX_ID + 1];	//医院对应管道ID(用于模拟用水量)
+	int	nodeindex;				//医院节点索引
+	int pipeindex;				//医院对应管道索引
+};
+typedef struct Hospital SHospital;
+
+/* 定义消火栓结构体 */
+struct Firefight
+{
+	char ID[MAX_ID + 1];	//消火栓管道ID
+	int index;				//消火栓管道索引(以1开始)
+	float fire_flow;		//设计消防流量
+	float cumu_flow;		//累计消防流量
+};
+typedef struct Firefight SFirefight;
 
 /* 定义爆管结构体 */
 struct Breaks
@@ -143,9 +163,9 @@ typedef struct _visiablelist
 /* 定义系统供水能力结构体 */
 typedef struct _sercapacity
 {
-	float SystemFun;	/* 系统整体供水能力 */
-	int Numkeyfac; /* 满足供水能力的关键基础设施数量 */
-	float MeankeyFunc; /* 基础设施平均供水能力 */
+	double Functionality;	/* 系统整体供水能力 */
+	int Numkeyfac;			/* 满足供水能力的关键基础设施数量 */
+	double MeankeyFunc;		/* 基础设施平均供水能力 */
 }Sercapacity;
 
 #endif
