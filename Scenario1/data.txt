@@ -8,10 +8,6 @@
 C21643	35	
 C54531	35
 
-[Initial_Solution]
-;Type	index
-2	3
-
 [BREAKS]
 ;Pipe ID	BreakID		Diameter(mm)	pipes closed for isolation	Isolation time(min)	replacement(h)
 437	E437	500	169	623	4384	45	14			
@@ -144,3 +140,15 @@ C54531	35
 740	E740	75	3							
 880	E880	75	3							
 940	E940	75	3							
+
+[Schedule_Crew1]
+;index	type	starttime	endtime
+
+[Schedule_Crew2]
+;index	type	starttime	endtime
+
+[Schedule_Crew3]
+;index	type	starttime	endtime
+
+[Decision_Variable]
+;index	type
