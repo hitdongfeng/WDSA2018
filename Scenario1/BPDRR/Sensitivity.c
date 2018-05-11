@@ -13,8 +13,8 @@ Email: wdswater@gmail.com
 #include "wdstypes.h"
 #include "wdsfuns.h"
 #include "epanet2.h"
-#define EXTERN extern
-//#define EXTERN 
+//#define EXTERN extern
+#define EXTERN 
 #include "wdsvars.h"
 
 void Open_inp_file(char *f1, char *f2, char *f3)
@@ -32,6 +32,49 @@ void Open_inp_file(char *f1, char *f2, char *f3)
 	{
 		fprintf(ErrFile, ERR407);
 	}
+}
+
+int GetDemand(char* f1, long time)
+/**----------------------------------------------------------------
+**  输入:  f1:inp文件指针; time: 模拟时刻（以秒计）
+**  输出:  Error code
+**  功能:  获取指定模拟时刻需水量节点实际需水量
+**----------------------------------------------------------------*/
+{
+	int s;
+	int errcode = 0, errsum = 0;
+	long t, tstep;		/* t: 当前时刻; tstep: 水力计算时间步长 */
+	float demand;		/* 临时变量，用于存储泄流量 */
+
+	s = (time / 3600) % 24; //当前时刻所对应的时段
+	/* run epanet analysis engine */
+	Open_inp_file(f1, "BBM_EPS.rpt", "");
+	ENsetstatusreport(0);		/* No Status reporting */
+	ENsetreport("MESSAGES NO"); /* No Status reporting */
+	ERR_CODE(ENopenH());	if (errcode > 100) errsum++;	/* Opens the hydraulics analysis system. */
+	ERR_CODE(ENinitH(0));	if (errcode > 100) errsum++;	/* Don't save the hydraulics file */
+
+	do 
+	{
+		ERR_CODE(ENrunH(&t)); if (errcode>100) errsum++;
+		if (t == s*3600) /* Begin the restoration */
+		{
+			for (int i = 0; i < Ndemands; i++)
+			{
+				ERR_CODE(ENgetnodevalue(i+1, EN_DEMAND, &demand));
+				if (errcode > 100) errsum++;
+				ActuralBaseDemand[i] = demand;
+			}
+			break;
+		}
+		ERR_CODE(ENnextH(&tstep));	if (errcode>100) errsum++;
+	} while (tstep>0);
+	
+	ERR_CODE(ENcloseH());	if (errcode > 100) errsum++;
+	ERR_CODE(ENclose());	if (errcode > 100) errsum++;
+
+	if (errsum > 0) errcode = 412;
+	return errcode;
 }
 
 void Get_FailPipe_keyfacility_Attribute()
@@ -145,7 +188,6 @@ int Add_Visdemage_tail(VisiableList *list, int type, int index,long time)
 	return errcode;
 }
 
-
 int Visible_Damages_initial(long time)
 /**----------------------------------------------------------------
 **  输入:  time 模拟时刻
@@ -195,49 +237,6 @@ int Visible_Damages_initial(long time)
 	return errcode;
 }
 
-int GetDemand(char* f1, long time)
-/**----------------------------------------------------------------
-**  输入:  f1:inp文件指针; time: 模拟时刻（以秒计）
-**  输出:  Error code
-**  功能:  获取指定模拟时刻需水量节点实际需水量
-**----------------------------------------------------------------*/
-{
-	int s;
-	int errcode = 0, errsum = 0;
-	long t, tstep;		/* t: 当前时刻; tstep: 水力计算时间步长 */
-	float demand;		/* 临时变量，用于存储泄流量 */
-
-	s = (time / 3600) % 24; //当前时刻所对应的时段
-	/* run epanet analysis engine */
-	Open_inp_file(f1, "BBM_EPS.rpt", "");
-	ENsetstatusreport(0);		/* No Status reporting */
-	ENsetreport("MESSAGES NO"); /* No Status reporting */
-	ERR_CODE(ENopenH());	if (errcode > 100) errsum++;	/* Opens the hydraulics analysis system. */
-	ERR_CODE(ENinitH(0));	if (errcode > 100) errsum++;	/* Don't save the hydraulics file */
-
-	do 
-	{
-		ERR_CODE(ENrunH(&t)); if (errcode>100) errsum++;
-		if (t == s*3600) /* Begin the restoration */
-		{
-			for (int i = 0; i < Ndemands; i++)
-			{
-				ERR_CODE(ENgetnodevalue(i+1, EN_DEMAND, &demand));
-				if (errcode > 100) errsum++;
-				ActuralBaseDemand[i] = demand;
-			}
-			break;
-		}
-		ERR_CODE(ENnextH(&tstep));	if (errcode>100) errsum++;
-	} while (tstep>0);
-	
-	ERR_CODE(ENcloseH());	if (errcode > 100) errsum++;
-	ERR_CODE(ENclose());	if (errcode > 100) errsum++;
-
-	if (errsum > 0) errcode = 412;
-	return errcode;
-}
-
 Sercapacity* GetSerCapcity(long time)
 /**----------------------------------------------------------------
 **  输入:  time: 模拟时刻（以秒计）
@@ -254,7 +253,7 @@ Sercapacity* GetSerCapcity(long time)
 
 	for (int i = 0; i < Ndemands; i++)
 	{
-		ERR_CODE(ENgetlinkvalue(i + Start_nodeindex, EN_FLOW, &x));
+		ERR_CODE(ENgetlinkvalue(i + Start_pipeindex, EN_FLOW, &x));
 		if (errcode > 100) errsum++;
 		
 		sumpdddemand += (double)x;

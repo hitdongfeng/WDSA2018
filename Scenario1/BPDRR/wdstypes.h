@@ -7,7 +7,7 @@
 -----------------------------*/
 
 #define	  Ndemands	 4201		/* 管网需水量节点数量(需水量>0) */
-#define	  Start_nodeindex	6440/* pdd模型节点索引起始值(pdd模型节点水量为0，由对应的节点水库代替) */
+#define	  Start_pipeindex	6440/* pdd模型管道索引起始值(pdd模型节点水量为0，由对应的管道流量代替) */
 
 #define   MAX_CREWS	 3			/* 工程队数量 */
 #define   MAX_LINE   500        /* data.txt文件每行最大字符数 */
