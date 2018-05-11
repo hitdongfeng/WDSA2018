@@ -120,11 +120,13 @@ typedef struct Leaks SLeaks;
 /* 定义决策变量结构体 */
 struct Decision_Variable
 {
-	int index;	//管道数组索引,从0开始
-	int type;	//管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀 
+	int index;		//管道数组索引,从0开始
+	int type;		//管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀 
+	long starttime;	//维修起始时间
+	long endtime;	//维修结束时间
 	struct Decision_Variable *next;	//指向下一个邻接链表结构体
 };
-typedef struct Decision_Variable* PDecision_Variable;
+typedef  struct Decision_Variable* PDecision_Variable;
 
 /* 定义LinkedList链表指针结构体 */
 typedef struct _linkedlist
@@ -133,32 +135,6 @@ typedef struct _linkedlist
 	PDecision_Variable tail;	/* 指向尾节点指针 */
 	PDecision_Variable current;	/* 当前指针，用于辅助遍历链表 */
 }LinkedList;
-
-/* 定义工程队结构体 */
-struct Crew
-{
-	long cumulative_time;
-	LinkedList Plan;
-};
-typedef struct Crew SCrew;
-
-/* 定义visible demanges 管道结构体 */
-struct Cvisible
-{
-	int type;		/* 受损管道类型, 1:爆管; 2:漏损 */
-	int	Repoindex;	/* 管道在仓库数组中的索引(以0开始) */
-	long time;	/* Times of demage that is visible*/
-	struct Cvisible *next;
-};
-typedef struct Cvisible SCvisible;
-
-/* 定义VisiableList链表指针结构体 */
-typedef struct _visiablelist
-{
-	SCvisible* head;	/* 指向头节点指针 */
-	SCvisible* tail;	/* 指向尾节点指针 */
-	SCvisible* current;	/* 当前指针，用于辅助遍历链表 */
-}VisiableList;
 
 /* 定义系统供水能力结构体 */
 typedef struct _sercapacity

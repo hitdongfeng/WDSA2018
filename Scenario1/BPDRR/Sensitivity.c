@@ -156,38 +156,6 @@ void Get_FailPipe_keyfacility_Attribute()
 	}
 }
 
-int Add_Visdemage_tail(VisiableList *list, int type, int index,long time)
-/*--------------------------------------------------------------
-**  Input:   list: pointer to LinkedList array
-**			 type: 受损管道类型, 1:爆管; 2:漏损
-**			 index: 管道在仓库数组中的索引(以0开始)
-**			 time:	Times of demage that is visible
-**  Output:  none
-**  Purpose: Add a visible demanges struct to the tail of the list
-**--------------------------------------------------------------*/
-{
-	int errcode = 0; /* 初始化错误代码 */
-	SCvisible *p;	/* 临时变量，用于存储可见爆管或漏损管道信息 */
-	p = (SCvisible*)calloc(1, sizeof(SCvisible));
-	ERR_CODE(MEM_CHECK(p));	if (errcode) return 402;
-	p->time = time;
-	p->type = type;
-	p->Repoindex = index;
-	p->next = NULL;
-
-	if (list->head == NULL)
-	{
-		list->head = p;
-	}
-	else
-	{
-		list->tail->next = p;
-	}
-	list->tail = p;
-
-	return errcode;
-}
-
 int Visible_Damages_initial(long time)
 /**----------------------------------------------------------------
 **  输入:  time 模拟时刻
@@ -216,7 +184,7 @@ int Visible_Damages_initial(long time)
 			{
 				ERR_CODE(ENgetnodevalue(BreaksRepository[i].nodeindex, EN_DEMAND, &flow));
 				if (BreaksRepository[i].pipediameter >= 150 || flow > 2.5)
-					errcode = Add_Visdemage_tail(&IniVisDemages, _Break, i, time);
+					errcode = Add_tail(&IniVisDemages, _Break, i);
 				if (errcode>100)	errsum++;
 			}
 
@@ -225,7 +193,7 @@ int Visible_Damages_initial(long time)
 			{
 				ERR_CODE(ENgetnodevalue(LeaksRepository[i].nodeindex, EN_DEMAND, &flow));
 				if (LeaksRepository[i].pipediameter >= 300 || flow > 2.5)
-					errcode = Add_Visdemage_tail(&IniVisDemages, _Leak, i, time);
+					errcode = Add_tail(&IniVisDemages, _Leak, i);
 				if (errcode>100)	errsum++;
 			}
 		}
@@ -356,7 +324,7 @@ int main(void)
 	IniVisDemages.current = IniVisDemages.head;
 	while (IniVisDemages.current != NULL)
 	{
-		printf("type:%d		index:%d		time:%d\n", IniVisDemages.current->type, IniVisDemages.current->Repoindex, IniVisDemages.current->time);
+		printf("type:%d		index:%d\n", IniVisDemages.current->type, IniVisDemages.current->index);
 		IniVisDemages.current = IniVisDemages.current->next;
 	}
 

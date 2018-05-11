@@ -94,18 +94,6 @@ void initializeList(LinkedList *list)
 	list->current = NULL;
 }
 
-void iniVisiableList(VisiableList *list)
-/*----------------------------------------------------------------
-**  Input:   *list, pointer to list
-**  Output:  none
-**  Purpose: initializes VisiableList pointers to NULL
-**----------------------------------------------------------------*/
-{
-	list->head = NULL;
-	list->tail = NULL;
-	list->current = NULL;
-}
-
 void Init_pointers()
 /*----------------------------------------------------------------
 **  Input:   none
@@ -119,9 +107,9 @@ void Init_pointers()
 	BreaksRepository = NULL;		/* 爆管仓库指针(用于存储所有爆管) */
 	LeaksRepository = NULL;			/* 漏损管道仓库指针(用于存储所有漏损管道) */
 	Schedule = NULL;				/* 工程队调度指针 */
-	initializeList(&linkedlist);	/* 决策变量指针结构体 */
-	iniVisiableList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
-	iniVisiableList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
+	initializeList(&decisionlist);	/* 决策变量指针结构体 */
+	initializeList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
+	initializeList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
 	ActuralBaseDemand = NULL;			/* 节点实际需水量数组指针 */
 }
 
@@ -237,7 +225,7 @@ int  Alloc_Memory()
 	if (Nleaks > 0)
 		LeaksRepository = (SLeaks*)calloc(Nleaks, sizeof(SLeaks));
 
-	Schedule = (SCrew*)calloc(MAX_CREWS, sizeof(SCrew));
+	Schedule = (LinkedList*)calloc(MAX_CREWS, sizeof(LinkedList));
 
 	ActuralBaseDemand = (float*)calloc(Ndemands, sizeof(float));
 
@@ -327,18 +315,24 @@ int  Get_float(char *s, float *y)
 	return(1);
 }
 
-void Add_tail(LinkedList *list, int type, int index)
+int Add_tail(LinkedList *list, int type, int index)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to LinkedList array
 **			 type: 管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀
+**		     type: 受损管道类型, 1:爆管; 2:漏损
 **			 index: 管道数组索引,从0开始
-**  Output:  none
+**  Output:  error code
 **  Purpose: Add a Decision_Variable struct to the tail of the list
 **--------------------------------------------------------------*/
 {
-	PDecision_Variable p = (PDecision_Variable)calloc(1, sizeof(struct Decision_Variable));
+	int errcode = 0; /* 初始化错误代码 */
+	PDecision_Variable p;	/* 临时变量，用于存储可见爆管或漏损管道信息 */
+	p = (PDecision_Variable)calloc(1, sizeof(struct Decision_Variable));
+	ERR_CODE(MEM_CHECK(p));	if (errcode) return 402;
 	p->type = type;
 	p->index = index;
+	p->starttime = 0;
+	p->endtime = 0;
 	p->next = NULL;
 
 	if (list->head == NULL)
@@ -350,6 +344,8 @@ void Add_tail(LinkedList *list, int type, int index)
 		list->tail->next = p;
 	}
 	list->tail = p;
+
+	return errcode;
 }
 
 //void Add_plan(SCrew* crew, long time)
@@ -435,15 +431,16 @@ int Initial_Solution()
 **--------------------------------------------------------------*/
 {
 	int x,y;
+	int errcode;
 	
 	if (Ninivariables > 0)
 	{
 
 		if (!Get_int(Tok[0], &x))	return (403); /* 数值类型错误，含有非法字符 */	
 		if (!Get_int(Tok[1], &y))	return (403); /* 数值类型错误，含有非法字符 */
-		Add_tail(&linkedlist, x, y);
+		errcode = Add_tail(&decisionlist, x, y);
 	}
-	return 0;
+	return errcode;
 }
 
 int Breaks_Value()
@@ -639,12 +636,12 @@ void Emptymemory()
 	/* 释放Schedule数组内存 */
 	for (int i = 0; i < MAX_CREWS; i++)
 	{
-		Schedule[i].Plan.current = Schedule[i].Plan.head;
-		while (Schedule[i].Plan.current != NULL)
+		Schedule[i].current = Schedule[i].head;
+		while (Schedule[i].current != NULL)
 		{
-			Schedule[i].Plan.head = Schedule[i].Plan.head->next;
-			SafeFree(Schedule[i].Plan.current);
-			Schedule[i].Plan.current = Schedule[i].Plan.head;
+			Schedule[i].head = Schedule[i].head->next;
+			SafeFree(Schedule[i].current);
+			Schedule[i].current = Schedule[i].head;
 		}
 	}
 }
