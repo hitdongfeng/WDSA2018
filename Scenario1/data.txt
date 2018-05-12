@@ -10,7 +10,7 @@ C54531	35
 
 [BREAKS]
 ;Pipe ID	BreakID		Diameter(mm)	pipes closed for isolation	Isolation time(min)	replacement(h)
-437	E437	500	169	623	4384	45	14			
+437	E437	500	169	623	4384 45	14			
 3602	E3602	200	3602	30	7					
 2112	E2112	200	2112	2123	2124	2106	60	7		
 3562	E3562	200	3562	3584	3721	3270	60	7		

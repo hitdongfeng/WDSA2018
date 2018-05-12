@@ -13,8 +13,8 @@ Email: wdswater@gmail.com
 #include "wdstypes.h"
 #include "wdsfuns.h"
 #include "epanet2.h"
-#define EXTERN extern
-//#define EXTERN 
+//#define EXTERN extern
+#define EXTERN 
 #include "wdsvars.h"
 
 void Open_inp_file(char *f1, char *f2, char *f3)
@@ -184,7 +184,7 @@ int Visible_Damages_initial(long time)
 			{
 				ERR_CODE(ENgetnodevalue(BreaksRepository[i].nodeindex, EN_DEMAND, &flow));
 				if (BreaksRepository[i].pipediameter >= 150 || flow > 2.5)
-					errcode = Add_tail(&IniVisDemages, _Break, i);
+					errcode = Add_tail(&IniVisDemages, i, _Break,0,0);
 				if (errcode>100)	errsum++;
 			}
 
@@ -193,7 +193,7 @@ int Visible_Damages_initial(long time)
 			{
 				ERR_CODE(ENgetnodevalue(LeaksRepository[i].nodeindex, EN_DEMAND, &flow));
 				if (LeaksRepository[i].pipediameter >= 300 || flow > 2.5)
-					errcode = Add_tail(&IniVisDemages, _Leak, i);
+					errcode = Add_tail(&IniVisDemages,i, _Leak,0, 0);
 				if (errcode>100)	errsum++;
 			}
 		}
@@ -262,75 +262,129 @@ Sercapacity* GetSerCapcity(long time)
 	
 }
 
-//int SensitivityAnalysis()
-///**----------------------------------------------------------------
-//**  输入:  无
-//**  输出:  Error code
-//**  功能:  对受损可见管道进行灵敏度分析
-//**----------------------------------------------------------------*/
-//{
-//
-//
-//
-//}
+int SensitivityAnalysis(long time)
+/**----------------------------------------------------------------
+**  输入:  time: 模拟时刻
+**  输出:  Error code
+**  功能:  对受损可见管道进行灵敏度分析
+**----------------------------------------------------------------*/
+{
+	int errcode = 0, errsum=0;
+	int index, type;
+	long t, tstep;	/* t: 当前时刻; tstep: 水力计算时间步长 */
+	Sercapacity* sercapacity;
 
-//int main(void)
-//{
-//	int errcode = 0, errsum = 0;
-//	long t, tstep;		/* t: 当前时刻; tstep: 水力计算时间步长 */
-//	Sercapacity* sercapacity;
-//
-//	errcode = readdata("data.txt", "err.txt");
-//	if (errcode) {
-//		fprintf(ErrFile, ERR406);
-//		return (406);
-//	}
-//
-//	errcode = GetDemand("BBM_EPS.inp", 1800);
-//	if (errcode) {
-//		fprintf(ErrFile, ERR412);
-//		return (412);
-//	}
-//
-//	Open_inp_file("BBM_Scenario1.inp", "BBM_Scenario1.rpt", "");
-//	Get_FailPipe_keyfacility_Attribute();
-//
-//	ERR_CODE(Visible_Damages_initial(1800));
-//	if (errcode) {
-//		fprintf(ErrFile, ERR411);
-//		return (411);
-//	}
-//
-//
-//	/* run epanet analysis engine */
-//	ENsetstatusreport(0);		/* No Status reporting */
-//	ENsetreport("MESSAGES NO"); /* No Status reporting */
-//	ERR_CODE(ENopenH());	if (errcode > 100) errsum++;	/* Opens the hydraulics analysis system. */
-//	ERR_CODE(ENinitH(0));	if (errcode > 100) errsum++;	/* Don't save the hydraulics file */
-//
-//	do
-//	{
-//		ERR_CODE(ENrunH(&t)); if (errcode > 100) errsum++;
-//		if (t == 1800) /* Begin the restoration */
-//		{
-//			sercapacity = GetSerCapcity(1800);
-//			break;
-//		}
-//		ERR_CODE(ENnextH(&tstep));	if (errcode > 100) errsum++;
-//	} while (tstep > 0);
-//	ERR_CODE(ENcloseH());	if (errcode > 100) errsum++;
-//	ERR_CODE(ENclose());	if (errcode > 100) errsum++;
-//
-//	IniVisDemages.current = IniVisDemages.head;
-//	while (IniVisDemages.current != NULL)
-//	{
-//		printf("type:%d		index:%d\n", IniVisDemages.current->type, IniVisDemages.current->index);
-//		IniVisDemages.current = IniVisDemages.current->next;
-//	}
-//
-//	getchar();
-//	fclose(ErrFile);
-//
-//	if (errsum > 0) errcode = 412;
-//	return errcode;
-//}
+	IniVisDemages.current = IniVisDemages.head;
+	while (IniVisDemages.current != NULL)
+	{
+		/* run epanet analysis engine */
+		ENsetstatusreport(0);		/* No Status reporting */
+		ENsetreport("MESSAGES NO"); /* No Status reporting */
+		index = IniVisDemages.current->index;
+		type = IniVisDemages.current->type;
+
+		if (type == _Break)
+		{
+			for (int i = 0; i < BreaksRepository[index].num_isovalve; i++)
+			{
+				ERR_CODE(ENsetlinkvalue(BreaksRepository[index].pipes[i].pipeindex, EN_INITSTATUS, 0));
+				if (errcode)	errsum++;
+			}
+		}
+		ERR_CODE(ENopenH());	if (errcode > 100) errsum++;	/* Opens the hydraulics analysis system. */
+		ERR_CODE(ENinitH(0));	if (errcode > 100) errsum++;	/* Don't save the hydraulics file */
+		
+		do 
+		{
+			ERR_CODE(ENrunH(&t)); if (errcode > 100) errsum++;
+			if (t == time)
+			{
+				sercapacity = GetSerCapcity(time);
+
+				break;
+			}
+			ERR_CODE(ENnextH(&tstep));	if (errcode > 100) errsum++;
+		} while (tstep > 0);
+
+		ERR_CODE(ENcloseH());	if (errcode > 100) errsum++;
+		if (type == _Break)
+		{
+			for (int i = 0; i < BreaksRepository[index].num_isovalve; i++)
+			{
+				ERR_CODE(ENsetlinkvalue(BreaksRepository[index].pipes[i].pipeindex, EN_INITSTATUS, 1));
+				if (errcode)	errsum++;
+			}
+		}
+		IniVisDemages.head = IniVisDemages.head->next;
+		IniVisDemages.current = IniVisDemages.head;
+
+	}
+
+	if (errsum > 0) errcode = 414;
+	return errcode;
+}
+
+int main(void)
+{
+	int errcode = 0, errsum = 0;
+	long t, tstep;		/* t: 当前时刻; tstep: 水力计算时间步长 */
+	Sercapacity* sercapacity;
+
+	errcode = readdata("data.txt", "err.txt");
+	if (errcode) {
+		fprintf(ErrFile, ERR406);
+		return (406);
+	}
+
+	errcode = GetDemand("BBM_EPS.inp", 21600);
+	if (errcode) {
+		fprintf(ErrFile, ERR412);
+		return (412);
+	}
+
+	Open_inp_file("BBM_Scenario1.inp", "BBM_Scenario1.rpt", "");
+	Get_FailPipe_keyfacility_Attribute();
+
+	//ERR_CODE(Visible_Damages_initial(1800));
+	//if (errcode) {
+	//	fprintf(ErrFile, ERR411);
+	//	return (411);
+	//}
+
+	/* run epanet analysis engine */
+	ENsetstatusreport(0);		/* No Status reporting */
+	ENsetreport("MESSAGES NO"); /* No Status reporting */
+	ERR_CODE(ENopenH());	if (errcode > 100) errsum++;	/* Opens the hydraulics analysis system. */
+	ERR_CODE(ENinitH(0));	if (errcode > 100) errsum++;	/* Don't save the hydraulics file */
+	do
+	{
+		ERR_CODE(ENrunH(&t)); if (errcode > 100) errsum++;
+		if (t == 21600)
+		{
+			sercapacity = GetSerCapcity(21600);
+
+			break;
+		}
+		ERR_CODE(ENnextH(&tstep));	if (errcode > 100) errsum++;
+	} while (tstep > 0);
+
+	ERR_CODE(ENcloseH());	if (errcode > 100) errsum++;
+
+
+	//ERR_CODE(SensitivityAnalysis(21600));
+
+	
+
+	//IniVisDemages.current = IniVisDemages.head;
+	//while (IniVisDemages.current != NULL)
+	//{
+	//	printf("type:%d		index:%d\n", IniVisDemages.current->type, IniVisDemages.current->index);
+	//	IniVisDemages.current = IniVisDemages.current->next;
+	//}
+
+	getchar();
+	fclose(ErrFile);
+
+	if (errsum > 0) errcode = 412;
+	return errcode;
+}
