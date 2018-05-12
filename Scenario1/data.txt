@@ -156,5 +156,3 @@ C54531	35
 
 [Decision_Variable]
 ;index	type
-1	2
-3	4
