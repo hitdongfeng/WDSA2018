@@ -28,9 +28,12 @@ int	leak_count;			/* 漏损管道计数 */
 /* 定义data.txt文件标题数组 */
 char *Sect_Txt[] = {"[Hospital]", 
 					"[Firefight]",
-					"[Initial_Solution]",
 					"[BREAKS]",
 					"[LEAKS]",
+					"[Decision_Variable]",
+					"[Schedule_Crew1]",
+					"[Schedule_Crew2]",
+					"[Schedule_Crew3]",
 					NULL
 				   };
 
@@ -38,9 +41,12 @@ char *Sect_Txt[] = {"[Hospital]",
 enum Sect_Type {
 	_Hospital,
 	_Firefight,
-	_Initial_Solution,
 	_BREAKS,
 	_LEAKS,
+	_Decision_Variable,
+	_Schedule_Crew1,
+	_Schedule_Crew2,
+	_Schedule_Crew3,
 	_END
 };
 
@@ -170,7 +176,10 @@ void  Get_count()
 	Nfirefight = 0;		/* 消火栓数量 */
 	Nbreaks = 0;		/* 爆管管道数量 */
 	Nleaks = 0;			/* 漏失管道数量 */
-	Ninivariables = 0;	/* 初始解变量数量 */
+	Ndecisionvars = 0;	/* 初始决策变量数量 */
+	NvarsCrew1 = 0;		/* crew1初始解决策变量 */
+	NvarsCrew2 = 0;		/* crew2初始解决策变量 */
+	NvarsCrew3 = 0;		/* crew3初始解决策变量 */
 	sect = -1;			/* data.txt中数据片段索引 */
 
 	/* Make pass through data.txt counting number of each parameter */
@@ -198,9 +207,12 @@ void  Get_count()
 		{
 			case _Hospital:	Nhospital++;	break;
 			case _Firefight: Nfirefight++;	break;
-			case _Initial_Solution:  Ninivariables++;    break;
 			case _BREAKS:	Nbreaks++;	break;
 			case _LEAKS:	Nleaks++;	break;
+			case _Decision_Variable:  Ndecisionvars++;    break;
+			case _Schedule_Crew1:	NvarsCrew1++; break;
+			case _Schedule_Crew2:	NvarsCrew2++; break;
+			case _Schedule_Crew3:	NvarsCrew3++; break;
 			default: break;
 		}
 	}
@@ -301,6 +313,20 @@ int  Get_int(char *s, int *y)
 	return(1);
 }
 
+int  Get_long(char *s, long *y)
+/*-----------------------------------------------------------
+**  输入: *s = character string
+**  输出: *y = int point number
+**             returns 1 if conversion successful, 0 if not
+**  功能: converts string to int point number
+**-----------------------------------------------------------*/
+{
+	char *endptr;
+	*y = (long)strtod(s, &endptr);
+	if (*endptr > 0) return(0);
+	return(1);
+}
+
 int  Get_float(char *s, float *y)
 /*-----------------------------------------------------------
 **  输入: *s = character string
@@ -315,12 +341,14 @@ int  Get_float(char *s, float *y)
 	return(1);
 }
 
-int Add_tail(LinkedList *list, int type, int index)
+int Add_tail(LinkedList *list, int index, int type,long starttime,long endtime)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to LinkedList array
 **			 type: 管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀
 **		     type: 受损管道类型, 1:爆管; 2:漏损
 **			 index: 管道数组索引,从0开始
+**			 starttime: 修复开始时刻
+**			 endtime: 修复结束时刻
 **  Output:  error code
 **  Purpose: Add a Decision_Variable struct to the tail of the list
 **--------------------------------------------------------------*/
@@ -331,8 +359,8 @@ int Add_tail(LinkedList *list, int type, int index)
 	ERR_CODE(MEM_CHECK(p));	if (errcode) return 402;
 	p->type = type;
 	p->index = index;
-	p->starttime = 0;
-	p->endtime = 0;
+	p->starttime = starttime;
+	p->endtime = endtime;
 	p->next = NULL;
 
 	if (list->head == NULL)
@@ -420,29 +448,6 @@ int Firefight_data()
 	return 0;
 }
 
-int Initial_Solution()
-/*--------------------------------------------------------------
-**  Input:   none
-**  Output:  errcode code
-**  Purpose: processes  initialsolution data
-**  Format:
-**  [Initial_Solution]
-**  Type	index
-**--------------------------------------------------------------*/
-{
-	int x,y;
-	int errcode;
-	
-	if (Ninivariables > 0)
-	{
-
-		if (!Get_int(Tok[0], &x))	return (403); /* 数值类型错误，含有非法字符 */	
-		if (!Get_int(Tok[1], &y))	return (403); /* 数值类型错误，含有非法字符 */
-		errcode = Add_tail(&decisionlist, x, y);
-	}
-	return errcode;
-}
-
 int Breaks_Value()
 /*
 **--------------------------------------------------------------
@@ -509,6 +514,54 @@ int Leaks_Value()
 	return 0;
 }
 
+int DecisionVars_data()
+/*--------------------------------------------------------------
+**  Input:   none
+**  Output:  errcode code
+**  Purpose: processes  initialsolution data
+**  Format:
+**  [Initial_Solution]
+**  Type	index
+**--------------------------------------------------------------*/
+{
+	int x, y;
+	int errcode;
+
+	if (Ndecisionvars > 0)
+	{
+
+		if (!Get_int(Tok[0], &x))	return (403); /* 数值类型错误，含有非法字符 */
+		if (!Get_int(Tok[1], &y))	return (403); /* 数值类型错误，含有非法字符 */
+		errcode = Add_tail(&decisionlist, x, y,0,0);
+	}
+	return errcode;
+}
+
+int Crew_data(LinkedList *ptr,int NvarsCrew)
+/*--------------------------------------------------------------
+**  Input:   ptr: LinkedList结构体指针; NvarsCrew: Crew决策变量
+**  Output:  errcode code
+**  Purpose: processes  Crew data
+**  Format:
+**  [Initial_Solution]
+**  index	type	starttime	endtime
+**--------------------------------------------------------------*/
+{
+	int index, type;
+	int errcode;
+	long starttime, endtime;
+	if (NvarsCrew > 0)
+	{
+
+		if (!Get_int(Tok[0], &index))	return (403); /* 数值类型错误，含有非法字符 */
+		if (!Get_int(Tok[1], &type))	return (403); /* 数值类型错误，含有非法字符 */
+		if (!Get_long(Tok[2], &starttime))	return (403); /* 数值类型错误，含有非法字符 */
+		if (!Get_long(Tok[3], &endtime))	return (403); /* 数值类型错误，含有非法字符 */
+		errcode = Add_tail(ptr, index, type,starttime,endtime);
+	}
+	return errcode;
+}
+
 int  newline(int sect, char *line)
 /*--------------------------------------------------------------
 **  Input:   sect  = current section of input file
@@ -521,9 +574,12 @@ int  newline(int sect, char *line)
 	{
 	case _Hospital: return(Hospital_data()); break;
 	case _Firefight: return(Firefight_data()); break;
-	case _Initial_Solution:	return(Initial_Solution()); break;
 	case _BREAKS:	return(Breaks_Value()); break;
 	case _LEAKS:	return(Leaks_Value()); break;
+	case _Decision_Variable:	return(DecisionVars_data()); break;
+	case _Schedule_Crew1: return(Crew_data(&Schedule[0],NvarsCrew1)); break;
+	case _Schedule_Crew2: return(Crew_data(&Schedule[1], NvarsCrew2)); break;
+	case _Schedule_Crew3: return(Crew_data(&Schedule[2], NvarsCrew3)); break;
 	}
 	return(403);
 }
@@ -659,45 +715,57 @@ void Emptymemory()
 //}
 
 
-//int main(void)
-//{
-//	int errcode;
-//
-//	errcode = readdata("data.txt", "err.txt");
-//	fclose(ErrFile);
-//
-//	for (int i = 0; i < Nhospital; i++)
-//		printf("%s	\n", Hospitals[i].pipeID);
-//	printf("\n--------------------\n");
-//
-//	for (int i = 0; i < Nfirefight; i++)
-//		printf("%s	%f\n", Firefighting[i].ID,Firefighting[i].fire_flow);
-//	printf("\n--------------------\n");
-//
-//	for (int i = 0; i < Nbreaks; i++)
-//	{
-//		printf("%s	%s	%f	", BreaksRepository[i].pipeID, BreaksRepository[i].nodeID, BreaksRepository[i].pipediameter);
-//		for (int j = 0; j < BreaksRepository[i].num_isovalve; j++)
-//			printf("%s ", BreaksRepository[i].pipes[j].pipeID);
-//		printf("%d	%d,	%d	%d	%d\n",
-//			BreaksRepository[i].isolate_time, BreaksRepository[i].replace_time, BreaksRepository[i].isolate_flag, BreaksRepository[i].replace_flag, BreaksRepository[i].reopen_flag);
-//	}
-//	printf("--------------------\n");
-//	for (int i = 0; i < Nleaks; i++)
-//	{
-//		printf("%s	%s	%f	%d, %d	%d\n", LeaksRepository[i].pipeID, LeaksRepository[i].nodeID, LeaksRepository[i].pipediameter, LeaksRepository[i].repair_time, LeaksRepository[i].repair_flag, LeaksRepository[i].reopen_flag);
-//	}
-//
-//	printf("--------------------\n");
-//	linkedlist.current = linkedlist.head;
-//	while (linkedlist.current != NULL)
-//	{
-//		printf("%d	%d\n", linkedlist.current->type, linkedlist.current->index);
-//		linkedlist.current = linkedlist.current->next;
-//	}
-//
-//	getchar();
-//
-//	return 0;
-//
-//}
+int main(void)
+{
+	int errcode;
+
+	errcode = readdata("data.txt", "err.txt");
+	fclose(ErrFile);
+
+	for (int i = 0; i < Nhospital; i++)
+		printf("%s	%s\n", Hospitals[i].nodeID,Hospitals[i].pipeID);
+	printf("\n--------------------\n");
+
+	for (int i = 0; i < Nfirefight; i++)
+		printf("%s	%f\n", Firefighting[i].ID, Firefighting[i].fire_flow);
+	printf("\n--------------------\n");
+
+	for (int i = 0; i < Nbreaks; i++)
+	{
+		printf("%s	%s	%f	", BreaksRepository[i].pipeID, BreaksRepository[i].nodeID, BreaksRepository[i].pipediameter);
+		for (int j = 0; j < BreaksRepository[i].num_isovalve; j++)
+			printf("%s ", BreaksRepository[i].pipes[j].pipeID);
+		printf("%d	%d,	%d	%d	%d\n",
+			BreaksRepository[i].isolate_time, BreaksRepository[i].replace_time, BreaksRepository[i].isolate_flag, BreaksRepository[i].replace_flag, BreaksRepository[i].reopen_flag);
+	}
+	printf("--------------------\n");
+	for (int i = 0; i < Nleaks; i++)
+	{
+		printf("%s	%s	%f	%d, %d	%d\n", LeaksRepository[i].pipeID, LeaksRepository[i].nodeID, LeaksRepository[i].pipediameter, LeaksRepository[i].repair_time, LeaksRepository[i].repair_flag, LeaksRepository[i].reopen_flag);
+	}
+
+	printf("--------------------\n");
+	decisionlist.current = decisionlist.head;
+	while (decisionlist.current != NULL)
+	{
+		printf("%d	%d\n", decisionlist.current->index, decisionlist.current->type);
+		decisionlist.current = decisionlist.current->next;
+	}
+
+	printf("--------------------\n");
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		Schedule[i].current = Schedule[i].head;
+		while (Schedule[i].current != NULL)
+		{
+			printf("%d	%d	%d	%d\n", Schedule[i].current->index, Schedule[i].current->type, Schedule[i].current->starttime,Schedule[i].current->endtime);
+			Schedule[i].current = Schedule[i].current->next;
+		}
+		printf("\n\n");
+	}
+
+	getchar();
+
+	return 0;
+
+}
