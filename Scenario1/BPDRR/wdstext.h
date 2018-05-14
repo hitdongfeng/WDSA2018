@@ -17,6 +17,7 @@
 #define ERR411	"Function Error 411: one or more errors in function Visible_Damages_initial()!\n"
 #define ERR412	"Function Error 412: one or more errors in function Get_Actural_Demand()!\n"
 #define ERR413	"Function Error 413: one or more errors in function GetSerCapcity!\n"
+#define ERR414	"Function Error 413: one or more errors in function GetSerCapcPeriod!\n"
 
 
 #endif

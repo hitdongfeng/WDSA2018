@@ -13,6 +13,8 @@
 #define   MAX_LINE   500        /* data.txt文件每行最大字符数 */
 #define   MAX_TOKS   50         /* data.txt文件每行最大字段数 */
 #define	  MAX_ID	 31         /* ID最大字符数 */
+#define	  Time_Step	 900		/* 水力模拟时间步长(秒) */
+#define	  Pattern_length 24		/* 用水量时间模式长度 */
 
 
 #define   DATA_SEPSTR    " \t\n\r" /* data.txt文件字段分割符 */
@@ -142,6 +144,18 @@ typedef struct _sercapacity
 	double Functionality;	/* 系统整体供水能力 */
 	int Numkeyfac;			/* 满足供水能力的关键基础设施数量 */
 	double MeankeyFunc;		/* 基础设施平均供水能力 */
+	long time;				/* 模拟时刻 */
+	struct _sercapacity *next;
 }Sercapacity;
+
+/* 定义Sercaplist链表指针结构体 */
+typedef struct _sercaplist
+{
+	Sercapacity* head;		/* 指向头节点指针 */
+	Sercapacity* tail;		/* 指向尾节点指针 */
+	Sercapacity* current;	/* 当前指针，用于辅助遍历链表 */
+}Sercaplist;
+
+
 
 #endif

@@ -7,9 +7,7 @@ Email: wdswater@gmail.com
 ********************************************************************/
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #include <assert.h>
 #include "wdstext.h"
 #include "wdstypes.h"
@@ -17,7 +15,6 @@ Email: wdswater@gmail.com
 #include "wdsvars.h"
 #define MAXERRS  5   /* 错误信息累积最大次数 */
 
-FILE *InFile;
 char *Tok[MAX_TOKS];	/* 定义字段数组，用于存储字段 */
 int Ntokens;			/* data.txt中每行字段数量 */
 int hospital_count;		/* 医院设施计数 */
@@ -116,7 +113,7 @@ void Init_pointers()
 	initializeList(&decisionlist);	/* 决策变量指针结构体 */
 	initializeList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
 	initializeList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
-	ActuralBaseDemand = NULL;			/* 节点实际需水量数组指针 */
+	ActuralBaseDemand = NULL;		/* 节点实际需水量数组指针 */
 }
 
 int  Str_match(char *str, char *substr)
@@ -239,7 +236,9 @@ int  Alloc_Memory()
 
 	Schedule = (LinkedList*)calloc(MAX_CREWS, sizeof(LinkedList));
 
-	ActuralBaseDemand = (float*)calloc(Ndemands, sizeof(float));
+	ActuralBaseDemand = (float**)calloc(Ndemands, sizeof(float*));
+	for (int i = 0; i < Ndemands; i++)
+		ActuralBaseDemand[i] = (float*)calloc(Pattern_length, sizeof(float));
 
 	ERR_CODE(MEM_CHECK(Hospitals));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(Firefighting));	if (errcode) err_count++;
@@ -344,9 +343,9 @@ int  Get_float(char *s, float *y)
 int Add_tail(LinkedList *list, int index, int type,long starttime,long endtime)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to LinkedList array
-**			 type: 管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀
-**		     type: 受损管道类型, 1:爆管; 2:漏损
 **			 index: 管道数组索引,从0开始
+**			 type: 管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀
+**		     type: 受损管道类型, 1:爆管; 2:漏损	
 **			 starttime: 修复开始时刻
 **			 endtime: 修复结束时刻
 **  Output:  error code
@@ -374,6 +373,25 @@ int Add_tail(LinkedList *list, int index, int type,long starttime,long endtime)
 	list->tail = p;
 
 	return errcode;
+}
+
+void Add_SerCapcity_list(Sercaplist* list, Sercapacity *ptr)
+/*--------------------------------------------------------------
+**  Input:   list: pointer to Sercaplist chain table
+**			 ptr: 需要插入的Sercapacity结构体指针
+**  Output:  none
+**  Purpose: Add a Sercapacity struct to the tail of the list
+**--------------------------------------------------------------*/
+{
+	if (list->head == NULL)
+	{
+		list->head = ptr;
+	}
+	else
+	{
+		list->tail->next = ptr;
+	}
+	list->tail = ptr;
 }
 
 int Hospital_data()
@@ -705,7 +723,20 @@ void Emptymemory()
 	}
 
 	/* 释放ActuralBaseDemand数组指针 */
+	for (int i = 0; i < Ndemands; i++)
+	{
+		SafeFree(ActuralBaseDemand[i]);
+	}
 	SafeFree(ActuralBaseDemand);
+
+	/* 释放SerCapcPeriod链表指针 */
+	SerCapcPeriod.current = SerCapcPeriod.head;
+	while (SerCapcPeriod.current != NULL)
+	{
+		SerCapcPeriod.head = SerCapcPeriod.head->next;
+		SafeFree(SerCapcPeriod.current);
+		SerCapcPeriod.current = SerCapcPeriod.head;
+	}
 }
 
 //void File_close()
