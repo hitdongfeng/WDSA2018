@@ -212,7 +212,7 @@ Sercapacity* GetSerCapcity(long time)
 	int errcode = 0, errsum = 0;
 	int facility_count = 0;
 	int s;
-	float x;
+	float x,y1;
 	double sumpdddemand = 0.0, sumbasedemand = 0.0;
 	double y, meankeyfac = 0.0;
 	Sercapacity* ptr = (Sercapacity*)calloc(1, sizeof(Sercapacity));
@@ -221,6 +221,7 @@ Sercapacity* GetSerCapcity(long time)
 	s = (time / 3600) % 24; //当前时刻所对应的时段
 	for (int i = 0; i < Ndemands; i++)
 	{
+		ERR_CODE(ENgetnodevalue(i + 1, EN_PRESSURE, &y1));
 		ERR_CODE(ENgetlinkvalue(i + Start_pipeindex, EN_FLOW, &x));
 		if (errcode > 100) errsum++;
 		
@@ -231,6 +232,7 @@ Sercapacity* GetSerCapcity(long time)
 
 	for (int i = 0; i <Nhospital; i++)
 	{
+		ERR_CODE(ENgetnodevalue(Hospitals[i].pipeindex, EN_PRESSURE, &y1));
 		ERR_CODE(ENgetlinkvalue(Hospitals[i].pipeindex, EN_FLOW, &x));
 		if (errcode > 100) errsum++;
 
@@ -243,6 +245,7 @@ Sercapacity* GetSerCapcity(long time)
 
 	for (int i = 0; i < Nfirefight; i++)
 	{
+		ERR_CODE(ENgetnodevalue(Firefighting[i].index, EN_PRESSURE, &y1));
 		ERR_CODE(ENgetlinkvalue(Firefighting[i].index, EN_FLOW, &x));
 		if (errcode > 100) errsum++;
 
@@ -281,7 +284,7 @@ int GetSerCapcPeriod(long starttime, long endtime)
 	do
 	{
 		ERR_CODE(ENrunH(&t)); if (errcode > 100) errsum++;
-		if ((t >= starttime || t <= endtime) && (t % Time_Step == 0))
+		if ((t >= starttime && t <= endtime) && (t % Time_Step == 0))
 		{
 			ptr = GetSerCapcity(t);
 			Add_SerCapcity_list(&SerCapcPeriod, ptr);
@@ -358,8 +361,7 @@ int SensitivityAnalysis(long starttime,long endtime)
 				if (errcode)	errsum++;
 			}
 		}
-		IniVisDemages.head = IniVisDemages.head->next;
-		IniVisDemages.current = IniVisDemages.head;
+		IniVisDemages.current = IniVisDemages.current->next;
 		
 		printf("%d\n", count++);
 	}
@@ -439,7 +441,7 @@ int main(void)
 int main(void)
 {
 	int errcode = 0;	//错误编码 
-	long starttime = 1800;	//模拟开始时刻(秒)
+	long starttime = 18000;	//模拟开始时刻(秒)
 	long endtime = 86400;	//模拟结束时刻(秒)
 
 	/* 读取data.txt数据 */
@@ -461,7 +463,7 @@ int main(void)
 	ENsetreport("MESSAGES NO"); /* No Status reporting */
 	
 	/* 获取模拟开始时可见爆管或漏损管道信息 */
-	ERR_CODE(Visible_Damages_initial(starttime));
+	ERR_CODE(Visible_Damages_initial(1800));
 	if (errcode) { fprintf(ErrFile, ERR411); return (411); }
 
 

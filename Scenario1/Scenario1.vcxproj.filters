@@ -18,10 +18,10 @@
     <None Include="epanet2.dll">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="BBM_Scenario1.inp">
+    <None Include="BBM_EPS.inp">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="BBM_EPS.inp">
+    <None Include="BBM_Scenario1.inp">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>
