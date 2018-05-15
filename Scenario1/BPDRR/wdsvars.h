@@ -15,8 +15,8 @@ EXTERN int	Nhospital,		/* 医院设施数量 */
 			NvarsCrew3;		/* crew3初始解决策变量 */
 
 EXTERN FILE *ErrFile,		/* 错误报告文件指针 */
-			*InFile,		/* data.txt文件指针 */
-			*SenAnalys;		/* 灵敏度分析输出文件指针 */
+            *InFile,		/* data.txt文件指针 */
+            *SenAnalys;		/* 灵敏度分析输出文件指针 */
 
 
 //EXTERN	PDecision_Variable	Part_init_solution; /* 初始解指针 */

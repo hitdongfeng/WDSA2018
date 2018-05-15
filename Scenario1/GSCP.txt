@@ -1,6 +1,4 @@
 Report start time: 1800	Report end time: 86400
-time: 0	Functionality: 0.999311	Numkeyfac: 4	MeankeyFunc: 1.000003
-time: 900	Functionality: 0.999310	Numkeyfac: 4	MeankeyFunc: 1.000002
 time: 1800	Functionality: 0.999309	Numkeyfac: 4	MeankeyFunc: 1.000002
 time: 2700	Functionality: 0.999308	Numkeyfac: 4	MeankeyFunc: 1.000002
 time: 3600	Functionality: 0.999286	Numkeyfac: 4	MeankeyFunc: 1.000001
