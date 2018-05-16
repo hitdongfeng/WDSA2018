@@ -375,9 +375,9 @@ int SensitivityAnalysis(long starttime,long endtime)
 			}
 
 			/* 还原管道初始状态 */
-			emitter = BreaksRepository[index].emittervalue;
-			ERR_CODE(Breaks_Adjacent_operation(index, 1, emitter));
-			printf("Accumulates number of visible breaks: %d\n", count++);
+				emitter = BreaksRepository[index].emittervalue;
+				ERR_CODE(Breaks_Adjacent_operation(index, 1, emitter));
+				printf("Accumulates number of visible breaks: %d\n", count++);
 		}
 		IniVisDemages.current = IniVisDemages.current->next;
 	}

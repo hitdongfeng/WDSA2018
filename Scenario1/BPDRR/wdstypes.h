@@ -124,8 +124,8 @@ struct Decision_Variable
 {
 	int index;		//管道数组索引,从0开始
 	int type;		//管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀 
-	long starttime;	//维修起始时间
-	long endtime;	//维修结束时间
+	long starttime;	//操作起始时间
+	long endtime;	//操作结束时间
 	struct Decision_Variable *next;	//指向下一个邻接链表结构体
 };
 typedef  struct Decision_Variable* PDecision_Variable;
