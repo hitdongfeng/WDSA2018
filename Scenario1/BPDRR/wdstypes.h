@@ -15,6 +15,9 @@
 #define	  MAX_ID	 31         /* ID最大字符数 */
 #define	  Time_Step	 900		/* 水力模拟时间步长(秒) */
 #define	  Pattern_length 24		/* 用水量时间模式长度 */
+#define	  Break_Weight_Leak	0.5 /* 分配任务时，爆管与漏损选取权重 */
+#define	  NUM_BreakOperation 2  /* 爆管维修操作流程数量(隔离+替换) */
+#define	  NUM_LeakOperation 1	/* 漏损维修操作流程数量(维修) */
 
 
 #define   DATA_SEPSTR    " \t\n\r" /* data.txt文件字段分割符 */
@@ -156,6 +159,20 @@ typedef struct _sercaplist
 	Sercapacity* current;	/* 当前指针，用于辅助遍历链表 */
 }Sercaplist;
 
+/* 定义damagebranch结构体，在randperm函数中调用 */
+typedef struct _damagebranch
+{
+	int index;
+	int count;
+	struct _damagebranch *next;
+}Sdamagebranch;
 
+/* 定义LinkedList链表指针结构体 */
+typedef struct _damagebranchlist
+{
+	Sdamagebranch* head;	/* 指向头节点指针 */
+	Sdamagebranch* tail;	/* 指向尾节点指针 */
+	Sdamagebranch* current;	/* 当前指针，用于辅助遍历链表 */
+}Sdamagebranchlist;
 
 #endif

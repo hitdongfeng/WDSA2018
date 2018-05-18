@@ -51,12 +51,21 @@
     <ClInclude Include="BPDRR\wdsvars.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="BPDRR\mt19937ar.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BPDRR\readdata.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="BPDRR\Sensitivity.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BPDRR\EvolutionAlgorithm.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BPDRR\mt19937ar.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

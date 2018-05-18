@@ -12,6 +12,7 @@ Email: wdswater@gmail.com
 #include "wdstext.h"
 #include "wdstypes.h"
 #define EXTERN extern
+//#define EXTERN 
 #include "wdsvars.h"
 #define MAXERRS  5   /* 错误信息累积最大次数 */
 
@@ -97,6 +98,18 @@ void initializeList(LinkedList *list)
 	list->current = NULL;
 }
 
+void iniSercaplist(Sercaplist *list)
+/*----------------------------------------------------------------
+**  Input:   *list, pointer to list
+**  Output:  none
+**  Purpose: initializes Sercaplist pointers to NULL
+**----------------------------------------------------------------*/
+{
+	list->head = NULL;
+	list->tail = NULL;
+	list->current = NULL;
+}
+
 void Init_pointers()
 /*----------------------------------------------------------------
 **  Input:   none
@@ -114,6 +127,8 @@ void Init_pointers()
 	initializeList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
 	initializeList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
 	ActuralBaseDemand = NULL;		/* 节点实际需水量数组指针 */
+	iniSercaplist(&SerCapcPeriod);	/* 指定时段内每个模拟步长系统供水能力结构体 */
+	SerialSchedule = NULL;			/* 调度指令链表指针(所有调度指令) */
 }
 
 int  Str_match(char *str, char *substr)
@@ -509,7 +524,7 @@ int DecisionVars_data()
 **  Purpose: processes  initialsolution data
 **  Format:
 **  [Initial_Solution]
-**  Type	index
+**  index	Type	
 **--------------------------------------------------------------*/
 {
 	int x, y;
@@ -739,71 +754,62 @@ void Emptymemory()
 	}
 }
 
-//void File_close()
-///*----------------------------------------------------------------
-//**  Input:   none
-//**  Output:  none
-//**  Returns: none
-//**  Purpose: frees all memory & files used by BPDRR
-//**----------------------------------------------------------------*/
-//{
-//	if (InFile != NULL) fclose(InFile);
-//	if (ErrFile != NULL) fclose(ErrFile);
-//}
+//#define READDATA
+#ifdef READDATA
+int main(void)
+{
+	int errcode;
 
+	errcode = readdata("data.txt", "err.txt");
+	fclose(ErrFile);
 
-//int main(void)
-//{
-//	int errcode;
-//
-//	errcode = readdata("data.txt", "err.txt");
-//	fclose(ErrFile);
-//
-//	for (int i = 0; i < Nhospital; i++)
-//		printf("%s	%s\n", Hospitals[i].nodeID,Hospitals[i].pipeID);
-//	printf("\n--------------------\n");
-//
-//	for (int i = 0; i < Nfirefight; i++)
-//		printf("%s	%f\n", Firefighting[i].ID, Firefighting[i].fire_flow);
-//	printf("\n--------------------\n");
-//
-//	for (int i = 0; i < Nbreaks; i++)
-//	{
-//		printf("%s	%s	%f	", BreaksRepository[i].pipeID, BreaksRepository[i].nodeID, BreaksRepository[i].pipediameter);
-//		for (int j = 0; j < BreaksRepository[i].num_isovalve; j++)
-//			printf("%s ", BreaksRepository[i].pipes[j].pipeID);
-//		printf("%d	%d,	%d	%d	%d\n",
-//			BreaksRepository[i].isolate_time, BreaksRepository[i].replace_time, BreaksRepository[i].isolate_flag, BreaksRepository[i].replace_flag, BreaksRepository[i].reopen_flag);
-//	}
-//	printf("--------------------\n");
-//	for (int i = 0; i < Nleaks; i++)
-//	{
-//		printf("%s	%s	%f	%d, %d	%d\n", LeaksRepository[i].pipeID, LeaksRepository[i].nodeID, LeaksRepository[i].pipediameter, LeaksRepository[i].repair_time, LeaksRepository[i].repair_flag, LeaksRepository[i].reopen_flag);
-//	}
-//
-//	printf("--------------------\n");
-//	decisionlist.current = decisionlist.head;
-//	while (decisionlist.current != NULL)
-//	{
-//		printf("%d	%d\n", decisionlist.current->index, decisionlist.current->type);
-//		decisionlist.current = decisionlist.current->next;
-//	}
-//
-//	printf("--------------------\n");
-//	for (int i = 0; i < MAX_CREWS; i++)
-//	{
-//		Schedule[i].current = Schedule[i].head;
-//		while (Schedule[i].current != NULL)
-//		{
-//			printf("%d	%d	%d	%d\n", Schedule[i].current->index, Schedule[i].current->type, Schedule[i].current->starttime,Schedule[i].current->endtime);
-//			Schedule[i].current = Schedule[i].current->next;
-//		}
-//		printf("\n\n");
-//	}
-//
-//	Emptymemory();
-//	getchar();
-//
-//	return 0;
-//
-//}
+	for (int i = 0; i < Nhospital; i++)
+		printf("%s	%s\n", Hospitals[i].nodeID,Hospitals[i].pipeID);
+	printf("\n--------------------\n");
+
+	for (int i = 0; i < Nfirefight; i++)
+		printf("%s	%f\n", Firefighting[i].ID, Firefighting[i].fire_flow);
+	printf("\n--------------------\n");
+
+	for (int i = 0; i < Nbreaks; i++)
+	{
+		printf("%s	%s	%f	", BreaksRepository[i].pipeID, BreaksRepository[i].nodeID, BreaksRepository[i].pipediameter);
+		for (int j = 0; j < BreaksRepository[i].num_isovalve; j++)
+			printf("%s ", BreaksRepository[i].pipes[j].pipeID);
+		printf("%d	%d,	%d	%d	%d\n",
+			BreaksRepository[i].isolate_time, BreaksRepository[i].replace_time, BreaksRepository[i].isolate_flag, BreaksRepository[i].replace_flag, BreaksRepository[i].reopen_flag);
+	}
+	printf("--------------------\n");
+	for (int i = 0; i < Nleaks; i++)
+	{
+		printf("%s	%s	%f	%d, %d	%d\n", LeaksRepository[i].pipeID, LeaksRepository[i].nodeID, LeaksRepository[i].pipediameter, LeaksRepository[i].repair_time, LeaksRepository[i].repair_flag, LeaksRepository[i].reopen_flag);
+	}
+
+	printf("--------------------\n");
+	decisionlist.current = decisionlist.head;
+	while (decisionlist.current != NULL)
+	{
+		printf("%d	%d\n", decisionlist.current->index, decisionlist.current->type);
+		decisionlist.current = decisionlist.current->next;
+	}
+
+	printf("--------------------\n");
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		Schedule[i].current = Schedule[i].head;
+		while (Schedule[i].current != NULL)
+		{
+			printf("%d	%d	%d	%d\n", Schedule[i].current->index, Schedule[i].current->type, Schedule[i].current->starttime,Schedule[i].current->endtime);
+			Schedule[i].current = Schedule[i].current->next;
+		}
+		printf("\n\n");
+	}
+
+	Emptymemory();
+	getchar();
+
+	return 0;
+
+}
+
+#endif

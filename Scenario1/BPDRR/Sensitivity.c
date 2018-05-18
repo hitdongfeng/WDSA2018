@@ -13,8 +13,8 @@ Email: wdswater@gmail.com
 #include "wdstypes.h"
 #include "wdsfuns.h"
 #include "epanet2.h"
-//#define EXTERN extern
-#define EXTERN 
+#define EXTERN extern
+//#define EXTERN 
 #include "wdsvars.h"
 
 void Open_inp_file(char *f1, char *f2, char *f3)
@@ -459,7 +459,7 @@ int main(void)
 }
 #endif
 
-#define SA
+//#define SA
 #ifdef SA
 int main(void)
 {

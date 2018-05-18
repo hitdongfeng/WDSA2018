@@ -31,12 +31,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BPDRR\epanet2.h" />
+    <ClInclude Include="BPDRR\mt19937ar.h" />
     <ClInclude Include="BPDRR\wdsfuns.h" />
     <ClInclude Include="BPDRR\wdstext.h" />
     <ClInclude Include="BPDRR\wdstypes.h" />
     <ClInclude Include="BPDRR\wdsvars.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BPDRR\EvolutionAlgorithm.c" />
+    <ClCompile Include="BPDRR\mt19937ar.c" />
     <ClCompile Include="BPDRR\readdata.c" />
     <ClCompile Include="BPDRR\Sensitivity.c" />
   </ItemGroup>
