@@ -117,18 +117,18 @@ void Init_pointers()
 **  Purpose: initializes global pointers to NULL
 **----------------------------------------------------------------*/
 {
-	//Part_init_solution = NULL;	/* 初始解指针 */
 	Hospitals = NULL;				/* 医院设施结构体指针 */
 	Firefighting = NULL;			/* 消火栓结构体指针 */
 	BreaksRepository = NULL;		/* 爆管仓库指针(用于存储所有爆管) */
 	LeaksRepository = NULL;			/* 漏损管道仓库指针(用于存储所有漏损管道) */
-	Schedule = NULL;				/* 工程队调度指针 */
+	ExistSchedule = NULL;				/* 工程队调度指针 */
 	initializeList(&decisionlist);	/* 决策变量指针结构体 */
 	initializeList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
 	initializeList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
 	ActuralBaseDemand = NULL;		/* 节点实际需水量数组指针 */
 	iniSercaplist(&SerCapcPeriod);	/* 指定时段内每个模拟步长系统供水能力结构体 */
 	SerialSchedule = NULL;			/* 调度指令链表指针(所有调度指令) */
+	Schedule = NULL;				/* 工程队调度指针(包含初始解和新增解) */
 }
 
 int  Str_match(char *str, char *substr)
@@ -249,7 +249,8 @@ int  Alloc_Memory()
 	if (Nleaks > 0)
 		LeaksRepository = (SLeaks*)calloc(Nleaks, sizeof(SLeaks));
 
-	Schedule = (LinkedList*)calloc(MAX_CREWS, sizeof(LinkedList));
+	ExistSchedule = (LinkedList*)calloc(MAX_CREWS, sizeof(LinkedList));
+	Schedule = (STaskassigmentlist*)calloc(MAX_CREWS, sizeof(STaskassigmentlist));
 
 	ActuralBaseDemand = (float**)calloc(Ndemands, sizeof(float*));
 	for (int i = 0; i < Ndemands; i++)
@@ -259,6 +260,7 @@ int  Alloc_Memory()
 	ERR_CODE(MEM_CHECK(Firefighting));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(BreaksRepository));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(LeaksRepository));	if (errcode) err_count++;
+	ERR_CODE(MEM_CHECK(ExistSchedule));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(Schedule));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(ActuralBaseDemand));	if (errcode) err_count++;
 
@@ -580,9 +582,9 @@ int  newline(int sect, char *line)
 	case _BREAKS:	return(Breaks_Value()); break;
 	case _LEAKS:	return(Leaks_Value()); break;
 	case _Decision_Variable:	return(DecisionVars_data()); break;
-	case _Schedule_Crew1: return(Crew_data(&Schedule[0],NvarsCrew1)); break;
-	case _Schedule_Crew2: return(Crew_data(&Schedule[1], NvarsCrew2)); break;
-	case _Schedule_Crew3: return(Crew_data(&Schedule[2], NvarsCrew3)); break;
+	case _Schedule_Crew1: return(Crew_data(&ExistSchedule[0],NvarsCrew1)); break;
+	case _Schedule_Crew2: return(Crew_data(&ExistSchedule[1], NvarsCrew2)); break;
+	case _Schedule_Crew3: return(Crew_data(&ExistSchedule[2], NvarsCrew3)); break;
 	}
 	return(403);
 }
@@ -698,6 +700,18 @@ void Emptymemory()
 	for (int i = 0; i < Nleaks; i++)
 		SafeFree(LeaksRepository[i]);
 
+	/* 释放ExistSchedule数组内存 */
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		ExistSchedule[i].current = ExistSchedule[i].head;
+		while (ExistSchedule[i].current != NULL)
+		{
+			ExistSchedule[i].head = ExistSchedule[i].head->next;
+			SafeFree(ExistSchedule[i].current);
+			ExistSchedule[i].current = ExistSchedule[i].head;
+		}
+	}
+
 	/* 释放decisionlist链表指针 */
 	decisionlist.current = decisionlist.head;
 	while (decisionlist.current != NULL)
@@ -707,17 +721,6 @@ void Emptymemory()
 		decisionlist.current = decisionlist.head;
 	}
 
-	/* 释放Schedule数组内存 */
-	for (int i = 0; i < MAX_CREWS; i++)
-	{
-		Schedule[i].current = Schedule[i].head;
-		while (Schedule[i].current != NULL)
-		{
-			Schedule[i].head = Schedule[i].head->next;
-			SafeFree(Schedule[i].current);
-			Schedule[i].current = Schedule[i].head;
-		}
-	}
 
 	/* 释放IniVisDemages链表指针 */
 	IniVisDemages.current = IniVisDemages.head;
@@ -728,7 +731,7 @@ void Emptymemory()
 		IniVisDemages.current = IniVisDemages.head;
 	}
 
-	/* 释放IniVisDemages链表指针 */
+	/* 释放NewVisDemages链表指针 */
 	NewVisDemages.current = NewVisDemages.head;
 	while (NewVisDemages.current != NULL)
 	{
@@ -752,6 +755,28 @@ void Emptymemory()
 		SafeFree(SerCapcPeriod.current);
 		SerCapcPeriod.current = SerCapcPeriod.head;
 	}
+
+	/* 释放Schedule数组内存 */
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		Schedule[i].current = Schedule[i].head;
+		while (Schedule[i].current != NULL)
+		{
+			Schedule[i].head = Schedule[i].head->next;
+			SafeFree(Schedule[i].current);
+			Schedule[i].current = Schedule[i].head;
+		}
+	}
+	
+	/* 释放SerialSchedule链表指针 */
+	SerialSchedule->current = SerialSchedule->head;
+	while (SerialSchedule->current != NULL)
+	{
+		SerialSchedule->head = SerialSchedule->head->next;
+		SafeFree(SerialSchedule->current);
+		SerialSchedule->current = SerialSchedule->head;
+	}
+
 }
 
 //#define READDATA

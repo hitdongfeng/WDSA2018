@@ -20,7 +20,7 @@
 #define ERR414	"Function Error 414: one or more errors in function GetSerCapcPeriod!\n"
 #define ERR415	"Function Error 415: one or more errors in function Add_tail!\n"
 #define ERR416	"Function Error 416: one or more errors in function Get_Select_Repository!\n"
-
+#define ERR417	"Function Error 417: one or more errors in function Task_Assignment!\n"
 
 #endif
 

@@ -26,13 +26,14 @@ EXTERN	SHospital* Hospitals;			/* 医院设施结构体指针 */
 EXTERN	SFirefight* Firefighting;		/* 消火栓结构体指针 */
 EXTERN	SBreaks*	BreaksRepository;	/* 爆管仓库指针(用于存储所有爆管) */
 EXTERN	SLeaks*		LeaksRepository;	/* 漏损管道仓库指针(用于存储所有漏损管道) */
-EXTERN	LinkedList*	Schedule;			/* 工程队调度指针 */
+EXTERN	LinkedList*	ExistSchedule;		/* 现有工程队调度指针(初始解) */
 EXTERN	LinkedList	decisionlist;		/* 受损管道管道类型修复指针结构体(用于存储链表指针) */
 EXTERN	LinkedList	IniVisDemages;		/* 模拟开始时刻(6:30)可见受损管道数组指针 */
 EXTERN	LinkedList	NewVisDemages;		/* 修复过程中新出现的可见受损管道数组指针 */
 EXTERN	float**	ActuralBaseDemand;		/* 节点实际需水量数组指针 */
 EXTERN	Sercaplist  SerCapcPeriod;		/* 指定时段内每个模拟步长系统供水能力结构体 */
 EXTERN  LinkedList*	SerialSchedule;     /* 调度指令链表指针(所有调度指令) */
+EXTERN  STaskassigmentlist*	Schedule;			/* 工程队调度指针(包含初始解和新增解) */
 
 
 

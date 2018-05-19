@@ -219,6 +219,184 @@ LinkedList* Randperm()
 	return p;
 }
 
+void Add_Taskassigmentlist(STaskassigmentlist* list, Scheduleindex *ptr)
+/*--------------------------------------------------------------
+**  Input:   list: pointer to STaskassigmentlist chain table
+**			 ptr: 需要插入的Scheduleindex结构体指针
+**  Output:  none
+**  Purpose: Add a Scheduleindex struct to the tail of the list
+**--------------------------------------------------------------*/
+{
+	if (list->head == NULL)
+	{
+		list->head = ptr;
+	}
+	else
+	{
+		list->tail->next = ptr;
+	}
+	list->tail = ptr;
+}
+
+int Find_Replace_Crow(PDecision_Variable ptr)
+/*--------------------------------------------------------------
+**  Input:   ptr: pointer to Decision_Variable
+**  Output:  执行Isolate操作的工程队索引,否则，返回错误值-1.
+**  Purpose: 针对爆管replace操作，查找执行Isolate操作的工程队索引
+**--------------------------------------------------------------*/
+{
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		Schedule[i].current = Schedule[i].head;
+		while (Schedule[i].current != NULL)
+		{
+			if (Schedule[i].current->pointer->index == ptr->index)
+				return i;
+			Schedule[i].current = Schedule[i].current->next;
+		}
+	}
+	return -1;
+}
+
+int Find_Finished_Crow()
+/*--------------------------------------------------------------
+**  Input:   None
+**  Output:  返回完成任务的工程队索引,否则，返回错误值-1.
+**  Purpose: 返回完成任务的工程队索引，以继续分配下一个指令
+**--------------------------------------------------------------*/
+{
+	int index=-1;
+	long mintime=(long)1E+8;
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		if (Schedule[i].head == NULL)
+			return i;
+		else
+		{
+			if (mintime > Schedule[i].tail->pointer->endtime)
+			{
+				mintime = Schedule[i].tail->pointer->endtime;
+				index = i;
+			}	
+		}
+	}
+	return index;
+}
+
+int Task_Assignment()
+/**----------------------------------------------------------------
+**  输入:  无
+**  输出:  Error Code
+**  功能:  将SerialSchedule链表中的所有指令分配至每个工程队
+**----------------------------------------------------------------*/
+{
+	int errcode = 0, err_count = 0;
+	int crowindex;	/* replace操作工程队索引 */
+	
+	Scheduleindex* ptr;	/* 临时指针 */
+
+	/* 若有初始解，先添加初始解 */
+	if (NvarsCrew1 > 0 || NvarsCrew2 > 0 || NvarsCrew1 > 0)
+	{
+		for (int i = 0; i < MAX_CREWS; i++)
+		{
+			ExistSchedule[i].current = ExistSchedule[i].head;
+			while (ExistSchedule[i].current != NULL)
+			{
+				ptr = (Scheduleindex*)calloc(1, sizeof(Scheduleindex));
+				ERR_CODE(MEM_CHECK(ptr));	if (errcode) err_count++;
+
+				ptr->pointer = ExistSchedule[i].current;
+				ptr->next = NULL;
+				Add_Taskassigmentlist(&Schedule[i], ptr);
+				ExistSchedule[i].current = ExistSchedule[i].current->next;
+			}
+		}
+	}
+
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		printf("Schedule[%d]:\n", i);
+		Schedule[i].current = Schedule[i].head;
+		while (Schedule[i].current != NULL)
+		{
+			printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
+				Schedule[i].current->pointer->index, Schedule[i].current->pointer->type,
+				Schedule[i].current->pointer->starttime, Schedule[i].current->pointer->endtime);
+			Schedule[i].current = Schedule[i].current->next;
+		}
+		printf("\n");
+	}
+	
+	/* 将SerialSchedule链表中的所有指令分配至每个工程队 */
+	SerialSchedule->current = SerialSchedule->head;
+	while (SerialSchedule->current != NULL)
+	{
+		/* 针对爆管Isolate操作,分配至相应的工程队 */
+		if (SerialSchedule->current->type == _Isolate)
+		{
+			crowindex = Find_Finished_Crow();
+			if (crowindex < 0) err_count++;
+			
+			if (Schedule[crowindex].head == NULL)
+			{
+				SerialSchedule->current->starttime = RestorStartTime;
+				SerialSchedule->current->endtime = BreaksRepository[SerialSchedule->current->index].isolate_time;
+			}
+			else
+			{
+				SerialSchedule->current->starttime= Schedule[crowindex].tail->pointer->endtime;
+				SerialSchedule->current->endtime = SerialSchedule->current->starttime + BreaksRepository[SerialSchedule->current->index].replace_time;
+			}
+				ptr = (Scheduleindex*)calloc(1, sizeof(Scheduleindex));
+				ptr->pointer = SerialSchedule->current;
+				ptr->next = NULL;
+				Add_Taskassigmentlist(&Schedule[crowindex], ptr);
+		}
+		/* 针对爆管replace操作，查找执行Isolate操作的工程队索引 */
+		else if (SerialSchedule->current->type == _Replace)
+		{
+			crowindex = Find_Replace_Crow(SerialSchedule->current);
+			if (crowindex < 0) err_count++;
+
+			SerialSchedule->current->starttime = Schedule[crowindex].tail->pointer->endtime;
+			SerialSchedule->current->endtime = SerialSchedule->current->starttime + BreaksRepository[SerialSchedule->current->index].replace_time;
+			
+			ptr = (Scheduleindex*)calloc(1, sizeof(Scheduleindex));
+			ptr->pointer = SerialSchedule->current;
+			ptr->next = NULL;
+			Add_Taskassigmentlist(&Schedule[crowindex], ptr);
+		}
+
+		/* 针对漏损repair操作，分配至相应的工程队 */
+		if (SerialSchedule->current->type == _Repair)
+		{
+			crowindex = Find_Finished_Crow();
+			if (crowindex < 0) err_count++;
+
+			if (Schedule[crowindex].head == NULL)
+			{
+				SerialSchedule->current->starttime = RestorStartTime;
+				SerialSchedule->current->endtime = LeaksRepository[SerialSchedule->current->index].repair_time;
+			}
+			else
+			{
+				SerialSchedule->current->starttime = Schedule[crowindex].tail->pointer->endtime;
+				SerialSchedule->current->endtime = SerialSchedule->current->starttime + LeaksRepository[SerialSchedule->current->index].repair_time;
+			}
+			ptr = (Scheduleindex*)calloc(1, sizeof(Scheduleindex));
+			ptr->pointer = SerialSchedule->current;
+			ptr->next = NULL;
+			Add_Taskassigmentlist(&Schedule[crowindex], ptr);
+		}
+
+		SerialSchedule->current = SerialSchedule->current->next;
+	}
+
+	if (err_count)
+		errcode = 417;
+	return errcode;
+}
 
 
 int main(void)
@@ -243,16 +421,16 @@ int main(void)
 
 	SerialSchedule = Randperm();
 
-	/* 打印SerialSchedule结构体数值 */
-	SerialSchedule->current = SerialSchedule->head;
-	while (SerialSchedule->current != NULL)
-	{
-		printf("index: %d	type: %d\n", SerialSchedule->current->index, SerialSchedule->current->type);
+	///* 打印SerialSchedule结构体数值 */
+	//SerialSchedule->current = SerialSchedule->head;
+	//while (SerialSchedule->current != NULL)
+	//{
+	//	printf("index: %d	type: %d\n", SerialSchedule->current->index, SerialSchedule->current->type);
 
-		SerialSchedule->current = SerialSchedule->current->next;
-	}
+	//	SerialSchedule->current = SerialSchedule->current->next;
+	//}
 
-
+	errcode = Task_Assignment();
 	
 	getchar();
 	return 0;

@@ -8,6 +8,7 @@
 
 #define	  Ndemands	 4201		/* 管网需水量节点数量(需水量>0) */
 #define	  Start_pipeindex	6440/* pdd模型管道索引起始值(pdd模型节点水量为0，由对应的管道流量代替) */
+#define	  RestorStartTime 1800	/* 开始修复时刻(秒) */
 
 #define   MAX_CREWS	 3			/* 工程队数量 */
 #define   MAX_LINE   500        /* data.txt文件每行最大字符数 */
@@ -167,12 +168,27 @@ typedef struct _damagebranch
 	struct _damagebranch *next;
 }Sdamagebranch;
 
-/* 定义LinkedList链表指针结构体 */
+/* 定义damagebranchlist链表指针结构体 */
 typedef struct _damagebranchlist
 {
 	Sdamagebranch* head;	/* 指向头节点指针 */
 	Sdamagebranch* tail;	/* 指向尾节点指针 */
 	Sdamagebranch* current;	/* 当前指针，用于辅助遍历链表 */
 }Sdamagebranchlist;
+
+/* 定义调度指令索引结构体 */
+typedef struct _Scheduleindex
+{
+	PDecision_Variable pointer; /* SerialSchedule链表指定位置指针 */
+	struct _Scheduleindex *next;/* 指向下一个结构体指针 */
+}Scheduleindex;
+
+/* 定义调度指令索引链表指针 */
+typedef struct _Taskassigmentlist
+{
+	Scheduleindex* head;	/* 指向头节点指针 */
+	Scheduleindex* tail;	/* 指向尾节点指针 */
+	Scheduleindex* current;	/* 当前指针，用于辅助遍历链表 */
+}STaskassigmentlist;
 
 #endif
