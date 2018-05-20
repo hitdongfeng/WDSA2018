@@ -250,8 +250,11 @@ int Find_Replace_Crow(PDecision_Variable ptr)
 		Schedule[i].current = Schedule[i].head;
 		while (Schedule[i].current != NULL)
 		{
-			if (Schedule[i].current->pointer->index == ptr->index)
-				return i;
+			if (Schedule[i].current->pointer->type == _Break)
+			{
+				if (Schedule[i].current->pointer->index == ptr->index)
+					return i;
+			}
 			Schedule[i].current = Schedule[i].current->next;
 		}
 	}
@@ -313,20 +316,6 @@ int Task_Assignment()
 			}
 		}
 	}
-
-	for (int i = 0; i < MAX_CREWS; i++)
-	{
-		printf("Schedule[%d]:\n", i);
-		Schedule[i].current = Schedule[i].head;
-		while (Schedule[i].current != NULL)
-		{
-			printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
-				Schedule[i].current->pointer->index, Schedule[i].current->pointer->type,
-				Schedule[i].current->pointer->starttime, Schedule[i].current->pointer->endtime);
-			Schedule[i].current = Schedule[i].current->next;
-		}
-		printf("\n");
-	}
 	
 	/* 将SerialSchedule链表中的所有指令分配至每个工程队 */
 	SerialSchedule->current = SerialSchedule->head;
@@ -341,12 +330,12 @@ int Task_Assignment()
 			if (Schedule[crowindex].head == NULL)
 			{
 				SerialSchedule->current->starttime = RestorStartTime;
-				SerialSchedule->current->endtime = BreaksRepository[SerialSchedule->current->index].isolate_time;
+				SerialSchedule->current->endtime = 60 * BreaksRepository[SerialSchedule->current->index].isolate_time;
 			}
 			else
 			{
 				SerialSchedule->current->starttime= Schedule[crowindex].tail->pointer->endtime;
-				SerialSchedule->current->endtime = SerialSchedule->current->starttime + BreaksRepository[SerialSchedule->current->index].replace_time;
+				SerialSchedule->current->endtime = SerialSchedule->current->starttime + 60 * BreaksRepository[SerialSchedule->current->index].isolate_time;
 			}
 				ptr = (Scheduleindex*)calloc(1, sizeof(Scheduleindex));
 				ptr->pointer = SerialSchedule->current;
@@ -360,7 +349,7 @@ int Task_Assignment()
 			if (crowindex < 0) err_count++;
 
 			SerialSchedule->current->starttime = Schedule[crowindex].tail->pointer->endtime;
-			SerialSchedule->current->endtime = SerialSchedule->current->starttime + BreaksRepository[SerialSchedule->current->index].replace_time;
+			SerialSchedule->current->endtime = SerialSchedule->current->starttime + 3600 * BreaksRepository[SerialSchedule->current->index].replace_time;
 			
 			ptr = (Scheduleindex*)calloc(1, sizeof(Scheduleindex));
 			ptr->pointer = SerialSchedule->current;
@@ -369,7 +358,7 @@ int Task_Assignment()
 		}
 
 		/* 针对漏损repair操作，分配至相应的工程队 */
-		if (SerialSchedule->current->type == _Repair)
+		else if (SerialSchedule->current->type == _Repair)
 		{
 			crowindex = Find_Finished_Crow();
 			if (crowindex < 0) err_count++;
@@ -377,12 +366,12 @@ int Task_Assignment()
 			if (Schedule[crowindex].head == NULL)
 			{
 				SerialSchedule->current->starttime = RestorStartTime;
-				SerialSchedule->current->endtime = LeaksRepository[SerialSchedule->current->index].repair_time;
+				SerialSchedule->current->endtime = 3600 * LeaksRepository[SerialSchedule->current->index].repair_time;
 			}
 			else
 			{
 				SerialSchedule->current->starttime = Schedule[crowindex].tail->pointer->endtime;
-				SerialSchedule->current->endtime = SerialSchedule->current->starttime + LeaksRepository[SerialSchedule->current->index].repair_time;
+				SerialSchedule->current->endtime = SerialSchedule->current->starttime + 3600 * LeaksRepository[SerialSchedule->current->index].repair_time;
 			}
 			ptr = (Scheduleindex*)calloc(1, sizeof(Scheduleindex));
 			ptr->pointer = SerialSchedule->current;
@@ -402,7 +391,7 @@ int Task_Assignment()
 int main(void)
 {
 	int errcode = 0;	//错误编码 
-	
+
 
 
 	/* 读取data.txt数据 */
@@ -421,16 +410,31 @@ int main(void)
 
 	SerialSchedule = Randperm();
 
-	///* 打印SerialSchedule结构体数值 */
-	//SerialSchedule->current = SerialSchedule->head;
-	//while (SerialSchedule->current != NULL)
-	//{
-	//	printf("index: %d	type: %d\n", SerialSchedule->current->index, SerialSchedule->current->type);
+	/* 打印SerialSchedule结构体数值 */
+	SerialSchedule->current = SerialSchedule->head;
+	while (SerialSchedule->current != NULL)
+	{
+		printf("index: %d	type: %d\n", SerialSchedule->current->index, SerialSchedule->current->type);
 
-	//	SerialSchedule->current = SerialSchedule->current->next;
-	//}
+		SerialSchedule->current = SerialSchedule->current->next;
+	}
 
 	errcode = Task_Assignment();
+
+	/* 打印 Schedule 结构体数值 */
+	for (int i = 0; i < MAX_CREWS; i++)
+	{
+		printf("\nSchedule[%d]:\n", i);
+		Schedule[i].current = Schedule[i].head;
+		while (Schedule[i].current != NULL)
+		{
+			printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
+				Schedule[i].current->pointer->index, Schedule[i].current->pointer->type,
+				Schedule[i].current->pointer->starttime, Schedule[i].current->pointer->endtime);
+			Schedule[i].current = Schedule[i].current->next;
+		}
+		printf("\n");
+	}
 	
 	getchar();
 	return 0;
