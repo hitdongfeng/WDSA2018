@@ -127,8 +127,6 @@ void Init_pointers()
 	initializeList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
 	ActuralBaseDemand = NULL;		/* 节点实际需水量数组指针 */
 	iniSercaplist(&SerCapcPeriod);	/* 指定时段内每个模拟步长系统供水能力结构体 */
-	SerialSchedule = NULL;			/* 调度指令链表指针(所有调度指令) */
-	Schedule = NULL;				/* 工程队调度指针(包含初始解和新增解) */
 }
 
 int  Str_match(char *str, char *substr)
@@ -250,7 +248,7 @@ int  Alloc_Memory()
 		LeaksRepository = (SLeaks*)calloc(Nleaks, sizeof(SLeaks));
 
 	ExistSchedule = (LinkedList*)calloc(MAX_CREWS, sizeof(LinkedList));
-	Schedule = (STaskassigmentlist*)calloc(MAX_CREWS, sizeof(STaskassigmentlist));
+	
 
 	ActuralBaseDemand = (float**)calloc(Ndemands, sizeof(float*));
 	for (int i = 0; i < Ndemands; i++)
@@ -261,7 +259,6 @@ int  Alloc_Memory()
 	ERR_CODE(MEM_CHECK(BreaksRepository));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(LeaksRepository));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(ExistSchedule));	if (errcode) err_count++;
-	ERR_CODE(MEM_CHECK(Schedule));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(ActuralBaseDemand));	if (errcode) err_count++;
 
 	if (err_count)
@@ -755,28 +752,6 @@ void Emptymemory()
 		SafeFree(SerCapcPeriod.current);
 		SerCapcPeriod.current = SerCapcPeriod.head;
 	}
-
-	/* 释放Schedule数组内存 */
-	for (int i = 0; i < MAX_CREWS; i++)
-	{
-		Schedule[i].current = Schedule[i].head;
-		while (Schedule[i].current != NULL)
-		{
-			Schedule[i].head = Schedule[i].head->next;
-			SafeFree(Schedule[i].current);
-			Schedule[i].current = Schedule[i].head;
-		}
-	}
-	
-	/* 释放SerialSchedule链表指针 */
-	SerialSchedule->current = SerialSchedule->head;
-	while (SerialSchedule->current != NULL)
-	{
-		SerialSchedule->head = SerialSchedule->head->next;
-		SafeFree(SerialSchedule->current);
-		SerialSchedule->current = SerialSchedule->head;
-	}
-
 }
 
 //#define READDATA

@@ -32,8 +32,8 @@ EXTERN	LinkedList	IniVisDemages;		/* 模拟开始时刻(6:30)可见受损管道数组指针 */
 EXTERN	LinkedList	NewVisDemages;		/* 修复过程中新出现的可见受损管道数组指针 */
 EXTERN	float**	ActuralBaseDemand;		/* 节点实际需水量数组指针 */
 EXTERN	Sercaplist  SerCapcPeriod;		/* 指定时段内每个模拟步长系统供水能力结构体 */
-EXTERN  LinkedList*	SerialSchedule;     /* 调度指令链表指针(所有调度指令) */
-EXTERN  STaskassigmentlist*	Schedule;			/* 工程队调度指针(包含初始解和新增解) */
+//EXTERN  LinkedList*	SerialSchedule;     /* 调度指令链表指针(所有调度指令) */
+//EXTERN  STaskassigmentlist*	Schedule;	/* 工程队调度指针(包含初始解和新增解) */
 
 
 
