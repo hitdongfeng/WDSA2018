@@ -257,7 +257,7 @@ int  Alloc_Memory()
 		ERR_CODE(MEM_CHECK(ActuralBaseDemand[i]));	if (errcode) err_count++;
 	}
 
-	Criteria = (int*)calloc(Ndemands, sizeof(int));
+	Criteria = (SCriteria*)calloc(Ndemands, sizeof(SCriteria));
 
 	ERR_CODE(MEM_CHECK(Hospitals));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(Firefighting));	if (errcode) err_count++;
@@ -470,19 +470,20 @@ int Breaks_Value()
 	int errcode = 0;
 	int time1, time2;
 	float dia;
-	SFailurePipe* ptr= (SFailurePipe*)calloc(Ntokens-5, sizeof(SFailurePipe));
+	SFailurePipe* ptr= (SFailurePipe*)calloc(Ntokens-6, sizeof(SFailurePipe));
 	ERR_CODE(MEM_CHECK(ptr)); if (errcode) return(402);
 
 	strncpy(BreaksRepository[break_count].pipeID, Tok[0], MAX_ID);
 	strncpy(BreaksRepository[break_count].nodeID, Tok[1], MAX_ID);
+	strncpy(BreaksRepository[break_count].flowID, Tok[2], MAX_ID);
 
-	if (!Get_float(Tok[2], &dia)) return (403); /* 数值类型错误，含有非法字符 */
+	if (!Get_float(Tok[3], &dia)) return (403); /* 数值类型错误，含有非法字符 */
 	BreaksRepository[break_count].pipediameter = dia;
 
-	for (int i = 3; i < Ntokens - 2; i++)
-		strncpy(ptr[i-3].pipeID, Tok[i], MAX_ID);
+	for (int i = 4; i < Ntokens - 2; i++)
+		strncpy(ptr[i-4].pipeID, Tok[i], MAX_ID);
 	BreaksRepository[break_count].pipes = ptr;
-	BreaksRepository[break_count].num_isovalve = Ntokens - 5;
+	BreaksRepository[break_count].num_isovalve = Ntokens - 6;
 
 	if (!Get_int(Tok[Ntokens - 2], &time1)) return (403); /* 数值类型错误，含有非法字符 */
 	if (!Get_int(Tok[Ntokens - 1], &time2)) return (403); /* 数值类型错误，含有非法字符 */ 
@@ -510,8 +511,9 @@ int Leaks_Value()
 
 	strncpy(LeaksRepository[leak_count].pipeID, Tok[0], MAX_ID);
 	strncpy(LeaksRepository[leak_count].nodeID, Tok[1], MAX_ID);
+	strncpy(LeaksRepository[leak_count].flowID, Tok[2], MAX_ID);
 
-	if (!Get_float(Tok[2], &dia))	return (403);
+	if (!Get_float(Tok[3], &dia))	return (403);
 	LeaksRepository[leak_count].pipediameter = dia;
 
 	if (!Get_int(Tok[Ntokens - 1], &time1))	return (403);

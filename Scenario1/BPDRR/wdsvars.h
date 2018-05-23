@@ -31,7 +31,7 @@ EXTERN	LinkedList	decisionlist;		/* ÊÜËğ¹ÜµÀ¹ÜµÀÀàĞÍĞŞ¸´Ö¸Õë½á¹¹Ìå(ÓÃÓÚ´æ´¢Á´±íÖ
 EXTERN	LinkedList	IniVisDemages;		/* Ä£Äâ¿ªÊ¼Ê±¿Ì(6:30)¿É¼ûÊÜËğ¹ÜµÀÊı×éÖ¸Õë */
 EXTERN	float**	ActuralBaseDemand;		/* ½ÚµãÊµ¼ÊĞèË®Á¿Êı×éÖ¸Õë */
 EXTERN	Sercaplist  SerCapcPeriod;		/* Ö¸¶¨Ê±¶ÎÄÚÃ¿¸öÄ£Äâ²½³¤ÏµÍ³¹©Ë®ÄÜÁ¦½á¹¹Ìå */
-EXTERN	int* Criteria;				    /* C_05ÆÀ¹À×¼ÔòÊı×éÖ¸Õë(ÓÃÓÚ¼ÆÊı) */
+EXTERN	SCriteria* Criteria;			/* C_05ÆÀ¹À×¼ÔòÊı×éÖ¸Õë(ÓÃÓÚ¼ÆÊı) */
 
 
 

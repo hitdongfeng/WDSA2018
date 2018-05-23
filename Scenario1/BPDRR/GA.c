@@ -68,22 +68,22 @@ int InitialGroups()
 		Groups[i].P_Reproduction = 0;
 		Groups[i].objvalue = 0;
 
-		/* 打印 Schedule 结构体数值 */
-		for (int j = 0; j < MAX_CREWS; j++)
-		{
-			printf("\nSchedule[%d]:\n", j);
-			Groups[i].Schedule[j].current = Groups[i].Schedule[j].head;
-			while (Groups[i].Schedule[j].current != NULL)
-			{
-				printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
-					Groups[i].Schedule[j].current->pointer->index, Groups[i].Schedule[j].current->pointer->type,
-					Groups[i].Schedule[j].current->pointer->starttime, Groups[i].Schedule[j].current->pointer->endtime);
-				Groups[i].Schedule[j].current = Groups[i].Schedule[j].current->next;
-			}
-			printf("\n");
-		}
+		///* 打印 Schedule 结构体数值 */
+		//for (int j = 0; j < MAX_CREWS; j++)
+		//{
+		//	printf("\nSchedule[%d]:\n", j);
+		//	Groups[i].Schedule[j].current = Groups[i].Schedule[j].head;
+		//	while (Groups[i].Schedule[j].current != NULL)
+		//	{
+		//		printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
+		//			Groups[i].Schedule[j].current->pointer->index, Groups[i].Schedule[j].current->pointer->type,
+		//			Groups[i].Schedule[j].current->pointer->starttime, Groups[i].Schedule[j].current->pointer->endtime);
+		//		Groups[i].Schedule[j].current = Groups[i].Schedule[j].current->next;
+		//	}
+		//	printf("\n");
+		//}
 
-		printf("\n***********************************\n");
+		//printf("\n***********************************\n");
 
 		if (errcode) err_count++;
 	}
@@ -94,8 +94,6 @@ int InitialGroups()
 	return errcode;
 }
 
-
-
 int Calculate_Objective_Value(Solution* sol)
 /*--------------------------------------------------------------
 **  Input:   sol: 种群数组指针
@@ -105,9 +103,9 @@ int Calculate_Objective_Value(Solution* sol)
 {
 	int errcode = 0, err_sum = 0;	/* 错误编码及计数 */
 	int s;							/* 整点时刻 */
-	int temvar,temindex,flag=-1;	/* 临时变量 */
+	int temvar,temindex;			/* 临时变量 */
 	float y,temflow;				/* 临时变量 */
-	double sumpdddemand = 0.0, sumbasedemand = 0.0; /* 节点pdd需水量、节点基本需水量 */
+	double sumpdddemand, sumbasedemand; /* 节点pdd需水量、节点基本需水量 */
 	long t, tstep;	/* t: 当前时刻; tstep: 水力计算时间步长 */
 
 	/* 设置Schedule结构体链表current指针 */
@@ -118,8 +116,10 @@ int Calculate_Objective_Value(Solution* sol)
 		Firefighting[i].cumu_flow = 0;
 	/* 初始化C_05计数器*/
 	for (int i = 0; i < Ndemands; i++)
-		Criteria[i] = 0;
-
+	{
+		Criteria[i].count = 0;
+		Criteria[i].flag = -1;
+	}
 					
 	/* run epanet analysis engine */
 	Open_inp_file(inpfile, "report.rpt", "");
@@ -131,6 +131,7 @@ int Calculate_Objective_Value(Solution* sol)
 	do 
 	{
 		ERR_CODE(ENrunH(&t)); if (errcode > 100) err_sum++;
+		sumpdddemand = 0.0, sumbasedemand = 0.0;	/* 初始化节点pdd需水量、节点基本需水量 */
 
 		if ((t >= SimulationStartTime && t <= SimulationEndTime) && (t % Time_Step == 0))
 		{
@@ -140,27 +141,30 @@ int Calculate_Objective_Value(Solution* sol)
 			{
 				ERR_CODE(ENgetlinkvalue(Hospitals[i].pipeindex, EN_FLOW, &temflow));
 				if (errcode > 100) err_sum++;
+				if ((temflow < FLow_Tolerance) || (temflow - ActuralBaseDemand[Hospitals[i].nodeindex - 1][s]) > 0.5)
+					temflow = 0.0;
 
 				y = temflow / ActuralBaseDemand[Hospitals[i].nodeindex - 1][s];
 				if (y <= 0.5)
 					sol->C_01 += Time_Step / 60;
+					
 			}
 
 			if (t >= RestorStartTime)
 			{
 				for (int i = 0; i < Nfirefight; i++) /* Firefight nodes */
 				{
-					/*ERR_CODE(ENgetlinkvalue(Firefighting[i].index, EN_FLOW, &temflow));
-					printf("[%d]: fireflow: %f, cumu_flow: %f\n", i, temflow, Firefighting[i].cumu_flow);
-					*/
 					if (Firefighting[i].cumu_flow < MAX_Fire_Volume)
 					{
 						ERR_CODE(ENgetlinkvalue(Firefighting[i].index, EN_FLOW, &temflow));
 						if (errcode > 100) err_sum++;
+						if ((temflow < FLow_Tolerance) || (temflow - Firefighting[i].fire_flow)>0.5)
+							temflow = 0.0;
 
 						y = temflow / Firefighting[i].fire_flow;
 						if (y <= 0.5)
 							sol->C_01 += Time_Step / 60;
+							
 					}
 				}
 			}
@@ -169,21 +173,23 @@ int Calculate_Objective_Value(Solution* sol)
 			{
 				ERR_CODE(ENgetlinkvalue(i + Start_pipeindex, EN_FLOW, &temflow));
 				if (errcode > 100) err_sum++;
+				if ((temflow < FLow_Tolerance) || (temflow - ActuralBaseDemand[i][s])>0.5)
+					temflow = 0.0;
 
 				if (temflow / ActuralBaseDemand[i][s] <= 0.5)
 				{
 					sol->C_04 += (double)Time_Step / (Ndemands*60.0);
 
-					Criteria[i]++;
-					if ((Criteria[i] >= Time_of_Consecutive*(3600 / Time_Step)) && flag==-1)
+					Criteria[i].count++;
+					if ((Criteria[i].count >= Time_of_Consecutive*(3600 / Time_Step)) && Criteria[i].flag==-1)
 					{
 						sol->C_05++;
-						flag = 1;
+						Criteria[i].flag = 1;
 					}	
 				}
 				else
 				{
-					Criteria[i] = 0;
+					Criteria[i].count = 0;
 				}
 
 				sumpdddemand += (double)temflow;
@@ -194,33 +200,26 @@ int Calculate_Objective_Value(Solution* sol)
 			
 			/* 计算C_03 */
 			if (sumpdddemand / sumbasedemand < 0.999)
-				sol->C_03 += (1.0 - sumpdddemand / sumbasedemand);
+				sol->C_03 += (1.0 - sumpdddemand / sumbasedemand)*(Time_Step/60);
 
 
 			/* 计算C_06 */
 			for (int i = 0; i < Nbreaks; i++) /* 遍历所有爆管 */
 			{
-				int index1;
-				float temflow1;
-				ERR_CODE(ENgetlinkindex("D437",&index1));
-				ERR_CODE(ENgetlinkvalue(index1, EN_FLOW, &temflow1));
-				ERR_CODE(ENgetlinkvalue(BreaksRepository[i].pipeindex, EN_FLOW, &temflow));
-				ERR_CODE(ENgetnodevalue(BreaksRepository[i].nodeindex, EN_DEMAND, &temflow));
-				ERR_CODE(ENgetnodevalue(BreaksRepository[i].nodeindex, EN_PRESSURE, &temflow));
-				ERR_CODE(ENgetnodevalue(BreaksRepository[i].nodeindex, EN_EMITTER, &temflow));
+				ERR_CODE(ENgetlinkvalue(BreaksRepository[i].flowindex, EN_FLOW, &temflow));
 				if (errcode > 100)	err_sum++;
-				sol->C_06 += (double)temflow;
+				if ((temflow < FLow_Tolerance))
+					temflow = 0.0;
+				sol->C_06 += (double)temflow * Time_Step;
 			}
 
 			for (int i = 0; i < Nleaks; i++) /* 遍历所有漏损管道 */
 			{
-				int index1;
-				float temflow1;
-				ERR_CODE(ENgetlinkindex("D3342", &index1));
-				ERR_CODE(ENgetlinkvalue(index1, EN_FLOW, &temflow1));
-				ERR_CODE(ENgetnodevalue(LeaksRepository[i].nodeindex, EN_DEMAND, &temflow));
+				ERR_CODE(ENgetlinkvalue(LeaksRepository[i].flowindex, EN_FLOW, &temflow));
 				if (errcode > 100)	err_sum++;
-				sol->C_06 += (double)temflow;
+				if ((temflow < FLow_Tolerance))
+					temflow = 0.0;
+				sol->C_06 += (double)temflow * Time_Step;
 			}
 /*************************************************************************************************/
 			/* 更新消火栓状态 */
@@ -237,8 +236,10 @@ int Calculate_Objective_Value(Solution* sol)
 					{
 						ERR_CODE(ENgetlinkvalue(Firefighting[i].index, EN_FLOW, &temflow));
 						if (errcode > 100) err_sum++;
+						if ((temflow < FLow_Tolerance) || (temflow - Firefighting[i].fire_flow>0.5))
+							temflow = 0.0;
 
-						Firefighting[i].cumu_flow += temflow * Time_Step * 60;
+						Firefighting[i].cumu_flow += temflow * Time_Step;
 					}
 				}
 			}
@@ -248,7 +249,6 @@ int Calculate_Objective_Value(Solution* sol)
 			{
 				if ((sol->Schedule[i].current != NULL) && (sol->Schedule[i].current->pointer->endtime == t))
 				{
-					printf("time: %d\n", t);
 					temindex = sol->Schedule[i].current->pointer->index;
 					temvar = sol->Schedule[i].current->pointer->type;
 					if (temvar == _Isolate)
@@ -263,7 +263,7 @@ int Calculate_Objective_Value(Solution* sol)
 					}
 					else if (temvar == _Repair)
 					{
-						ERR_CODE(Leaks_operation(temindex, EN_STATUS, 1,0));
+						ERR_CODE(Leaks_operation(temindex, EN_STATUS, 1, 0));
 					}
 
 					sol->Schedule[i].current = sol->Schedule[i].current->next;
@@ -274,13 +274,64 @@ int Calculate_Objective_Value(Solution* sol)
 		ERR_CODE(ENnextH(&tstep));	if (errcode > 100) err_sum++;
 	} while (tstep > 0);
 
-	sol->objvalue = 13.67771712 * (sol->C_01 + sol->C_02 + sol->C_03 + sol->C_04 + sol->C_05 + sol->C_06);
+	sol->objvalue = sol->C_01 + sol->C_02 + sol->C_03 + sol->C_04 + sol->C_05 + sol->C_06/1000000;
 
 	ERR_CODE(ENclose()); /* 关闭水力模型 */
 	if (err_sum)
 		errcode = 419;
 	return errcode;
 }
+
+void Calc_Probablity()
+/*--------------------------------------------------------------
+**  Input:   none
+**  Output:  none
+**  Purpose: 每次新产生的群体, 计算每个个体的概率
+**--------------------------------------------------------------*/
+{
+	double total_objvalue = 0.0;
+	double TempTotal_P = 0.0;
+
+	for (int i = 0; i < Num_group; i++)
+		total_objvalue += Groups[i].objvalue;
+
+	for (int i = 0; i < Num_group; i++)
+	{
+		Groups[i].P_Reproduction = (1.0 / Groups[i].objvalue)*total_objvalue;
+		TempTotal_P += Groups[i].P_Reproduction;
+	}
+
+	for (int i = 0; i < Num_group; i++)
+		Groups[i].P_Reproduction /= TempTotal_P;
+}
+
+int Select_Individual()
+/*--------------------------------------------------------------
+**  Input:   none
+**  Output:  个体索引,若为找到，返回错误代码
+**  Purpose: 轮盘赌随机从当前总群筛选出一个杂交对象
+**--------------------------------------------------------------*/
+{
+	double selection_P = genrand_real1(); /* 随机生成一个[0,1]随机数 */
+	double distribution_P = 0.0;
+
+	for (int i = 0; i < Num_group; i++)
+	{
+		distribution_P += Groups[i].P_Reproduction;
+		if (selection_P < distribution_P)
+			return i;
+	}
+
+	return 422;
+}
+
+void GA_Cross(Solution* Father, Solution* Mother)
+{
+
+}
+
+
+
 #define _GA
 #ifdef _GA
 
@@ -321,7 +372,10 @@ int main(void)
 	for (int i = 0; i < Num_group; i++)
 	{
 		ERR_CODE(Calculate_Objective_Value(&Groups[i]));
-		printf("Complited: %d / %d\n", i + 1, Num_group);
+		printf("C_01= %d, C_02= %d, C_03= %f, C_04= %f, C_05= %d, C_06= %f, Sum= %f\n",
+			Groups[i].C_01, Groups[i].C_02, Groups[i].C_03, Groups[i].C_04, Groups[i].C_05,
+			Groups[i].C_06, Groups[i].objvalue);
+		//printf("Complited: %d / %d\n", i + 1, Num_group);
 	}
 
 	getchar();

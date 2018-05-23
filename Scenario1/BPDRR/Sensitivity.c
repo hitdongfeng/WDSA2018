@@ -84,20 +84,22 @@ void Get_FailPipe_keyfacility_Attribute()
 **----------------------------------------------------------------*/
 {
 	int errcode = 0;
-	int nodeindex,pipeindex1, pipeindex2;
+	int nodeindex, pipeindex1, pipeindex2, pipeindex3;
 	float emitter;
 
 	for (int i = 0; i < Nbreaks; i++)
 	{
 		ERR_CODE(ENgetnodeindex(BreaksRepository[i].nodeID, &nodeindex));
 		if (errcode) fprintf(ErrFile, ERR408, BreaksRepository[i].nodeID);
-
 		BreaksRepository[i].nodeindex = nodeindex;
 
 		ERR_CODE(ENgetlinkindex(BreaksRepository[i].pipeID, &pipeindex1));
 		if (errcode) fprintf(ErrFile, ERR409, BreaksRepository[i].pipeID);
-			
 		BreaksRepository[i].pipeindex = pipeindex1;
+
+		ERR_CODE(ENgetlinkindex(BreaksRepository[i].flowID, &pipeindex2));
+		if (errcode) fprintf(ErrFile, ERR409, BreaksRepository[i].flowID);
+		BreaksRepository[i].flowindex = pipeindex2;
 
 		ERR_CODE(ENgetnodevalue(nodeindex, EN_EMITTER, &emitter));
 		if (errcode) fprintf(ErrFile, ERR410);
@@ -106,10 +108,9 @@ void Get_FailPipe_keyfacility_Attribute()
 
 		for (int j = 0; j < BreaksRepository[i].num_isovalve; j++)
 		{
-			ERR_CODE(ENgetlinkindex(BreaksRepository[i].pipes[j].pipeID, &pipeindex2));
+			ERR_CODE(ENgetlinkindex(BreaksRepository[i].pipes[j].pipeID, &pipeindex3));
 			if (errcode) fprintf(ErrFile, ERR408, BreaksRepository[i].pipes[j].pipeID);
-				
-			BreaksRepository[i].pipes[j].pipeindex = pipeindex2;
+			BreaksRepository[i].pipes[j].pipeindex = pipeindex3;
 		}
 	}
 	
@@ -122,8 +123,11 @@ void Get_FailPipe_keyfacility_Attribute()
 
 		ERR_CODE(ENgetlinkindex(LeaksRepository[i].pipeID, &pipeindex1));
 		if (errcode) fprintf(ErrFile, ERR409,LeaksRepository[i].pipeID);
-			
 		LeaksRepository[i].pipeindex = pipeindex1;
+
+		ERR_CODE(ENgetlinkindex(LeaksRepository[i].flowID, &pipeindex2));
+		if (errcode) fprintf(ErrFile, ERR409, LeaksRepository[i].flowID);
+		LeaksRepository[i].flowindex = pipeindex2;
 
 		ERR_CODE(ENgetnodevalue(nodeindex, EN_EMITTER, &emitter));
 		if (errcode) fprintf(ErrFile, ERR410);
@@ -184,7 +188,7 @@ int Visible_Damages_initial(long time)
 			/* 遍历所有爆管 */
 			for (int i = 0; i < Nbreaks; i++)
 			{
-				ERR_CODE(ENgetnodevalue(BreaksRepository[i].nodeindex, EN_DEMAND, &flow));
+				ERR_CODE(ENgetlinkvalue(BreaksRepository[i].flowindex, EN_FLOW, &flow));
 				if (BreaksRepository[i].pipediameter >= 150 || flow > 2.5)
 					errcode = Add_tail(&IniVisDemages, i, _Break,0,0);
 				if (errcode>100)	errsum++;
@@ -193,7 +197,7 @@ int Visible_Damages_initial(long time)
 			/* 遍历所有漏损管道 */
 			for (int i = 0; i < Nleaks; i++)
 			{
-				ERR_CODE(ENgetnodevalue(LeaksRepository[i].nodeindex, EN_DEMAND, &flow));
+				ERR_CODE(ENgetlinkvalue(LeaksRepository[i].flowindex, EN_FLOW, &flow));
 				if (LeaksRepository[i].pipediameter >= 300 || flow > 2.5)
 					errcode = Add_tail(&IniVisDemages,i, _Leak,0, 0);
 				if (errcode>100)	errsum++;
@@ -220,28 +224,28 @@ int Breaks_Adjacent_operation(int type, int index,int code, float status,float e
 {
 	int errcode=0, errsum = 0;
 	
-	float STATUS,EMITTER;//
+	//float STATUS,EMITTER;//
 
 	for (int i = 0; i < BreaksRepository[index].num_isovalve; i++)
 	{
 		ERR_CODE(ENsetlinkvalue(BreaksRepository[index].pipes[i].pipeindex, code, status));
 		if (errcode)	errsum++;
 
-		ERR_CODE(ENgetlinkvalue(BreaksRepository[index].pipes[i].pipeindex, EN_STATUS, &STATUS));//
-		printf("pipeID: %s, status: %f\n", BreaksRepository[index].pipes[i].pipeID, STATUS);//
+		//ERR_CODE(ENgetlinkvalue(BreaksRepository[index].pipes[i].pipeindex, EN_STATUS, &STATUS));//
+		//printf("pipeID: %s, status: %f\n", BreaksRepository[index].pipes[i].pipeID, STATUS);//
 	}
 	ERR_CODE(ENsetnodevalue(BreaksRepository[index].nodeindex, EN_EMITTER, emitter));
 	if (errcode)	errsum++;
-	ERR_CODE(ENgetnodevalue(BreaksRepository[index].nodeindex, EN_EMITTER, &EMITTER));//
-	printf("nodeID: %s, emitter: %f\n", BreaksRepository[index].nodeID, EMITTER);//
+	//ERR_CODE(ENgetnodevalue(BreaksRepository[index].nodeindex, EN_EMITTER, &EMITTER));//
+	//printf("nodeID: %s, emitter: %f\n", BreaksRepository[index].nodeID, EMITTER);//
 
 	if (type == _Reopen)
 	{
 		ERR_CODE(ENsetlinkvalue(BreaksRepository[index].pipeindex, code, status));
 		if (errcode)	errsum++;
 
-		ERR_CODE(ENgetlinkvalue(BreaksRepository[index].pipeindex, EN_STATUS, &STATUS));//
-		printf("pipeID: %s, status: %f\n", BreaksRepository[index].pipeID, STATUS);//
+		//ERR_CODE(ENgetlinkvalue(BreaksRepository[index].pipeindex, EN_STATUS, &STATUS));//
+		//printf("pipeID: %s, status: %f\n", BreaksRepository[index].pipeID, STATUS);//
 	}
 
 	if (errsum) errcode = 415;
@@ -261,18 +265,18 @@ int Leaks_operation(int index, int code, float status, float emitter)
 {
 	int errcode = 0, errsum = 0; /* 错误编码 */
 
-	float STATUS, EMITTER;//
+	//float STATUS, EMITTER;//
 
 	ERR_CODE(ENsetlinkvalue(LeaksRepository[index].pipeindex, code, status));
 	if (errcode)	errsum++;
-	ERR_CODE(ENgetlinkvalue(LeaksRepository[index].pipeindex, EN_STATUS, &STATUS));//
-	printf("pipeID: %s, status: %f\n", LeaksRepository[index].pipeID, STATUS);//
+	//ERR_CODE(ENgetlinkvalue(LeaksRepository[index].pipeindex, EN_STATUS, &STATUS));//
+	//printf("pipeID: %s, status: %f\n", LeaksRepository[index].pipeID, STATUS);//
 
 
 	ERR_CODE(ENsetnodevalue(LeaksRepository[index].nodeindex, EN_EMITTER, emitter));
 	if (errcode)	errsum++;
-	ERR_CODE(ENgetnodevalue(LeaksRepository[index].nodeindex, EN_EMITTER, &EMITTER));//
-	printf("nodeID: %s, emitter: %f\n", LeaksRepository[index].nodeID, EMITTER);//
+	//ERR_CODE(ENgetnodevalue(LeaksRepository[index].nodeindex, EN_EMITTER, &EMITTER));//
+	//printf("nodeID: %s, emitter: %f\n", LeaksRepository[index].nodeID, EMITTER);//
 
 	if (errsum) errcode = 421;
 

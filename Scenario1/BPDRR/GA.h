@@ -4,7 +4,7 @@
 
 
 /* 定义GA相关参数 */
-int Num_group = 2;		/* 群体个体规模 */
+int Num_group = 100;		/* 群体个体规模 */
 int Num_offs = 102;			/* 后代个体数量(Num_son = Num_group + 2) */
 int Num_iteration = 1000;	/* 迭代次数 */
 double P_mutation = 0.01;	/* 变异概率 */
@@ -24,6 +24,8 @@ typedef struct {
 	LinkedList	NewVisDemages;	 /* 修复过程中新出现的可见受损管道数组指针 */
 	STaskassigmentlist Schedule[MAX_CREWS]; /* 工程队调度指针(包含初始解和新增解) */
 }Solution;
+
+
 
 Solution* Groups;			/* 存储群体 */  
 Solution* Offspring;		/* 存储杂交后的个体 */

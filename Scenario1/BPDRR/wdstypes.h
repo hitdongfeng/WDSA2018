@@ -24,6 +24,7 @@
 #define	  MAX_Fire_Volume 756000	/* 每个消火栓总供水量(L) */
 #define	  NUM_Criteria	6			/* 评价准则数量 */
 #define	  Time_of_Consecutive 8		/* 节点连续缺水时间(小时) */
+#define	  FLow_Tolerance	1e-3	/* 流量容差 */
 
 
 #define   DATA_SEPSTR    " \t\n\r" /* data.txt文件字段分割符 */
@@ -102,8 +103,10 @@ struct Breaks
 	int num_isovalve;		//隔离爆管所需要关闭的管道数量
 	int nodeindex;			//虚拟节点索引（以1开始）
 	int pipeindex;          //爆管管道索引（以1开始）
+	int flowindex;			//爆管流量管道索引(以1开始)
 	char nodeID[MAX_ID + 1];//模拟爆管所添加的虚拟节点ID(将喷射系数设为0，以关闭爆管流量)
 	char pipeID[MAX_ID + 1];//爆管管道ID(将管道状态设置为open，以恢复供水)
+	char flowID[MAX_ID + 1];//爆管流量管道ID
 	float pipediameter;		//爆管管道直径(mm)
 	float emittervalue;     //虚拟节点喷射系数
 	SFailurePipe *pipes;	//隔离爆管所需要关闭的管道ID
@@ -118,8 +121,10 @@ struct Leaks
 	int repair_time;		//漏损修复时间(hours)
 	int nodeindex;			//虚拟节点索引（以1开始）
 	int pipeindex;          //漏损管道索引（以1开始）
+	int flowindex;			//漏损流量管道索引(以1开始)
 	char nodeID[MAX_ID + 1];//模拟漏损所添加的虚拟节点ID(将喷射系数设为0，以关闭漏损流量)
 	char pipeID[MAX_ID + 1];//漏损管道ID(将管道状态设置为open，以恢复供水)
+	char flowID[MAX_ID + 1];//漏损流量管道ID
 	float pipediameter;		//漏损管道直径(mm)
 	float emittervalue;     //虚拟节点喷射系数
 };
@@ -192,5 +197,13 @@ typedef struct _Taskassigmentlist
 	Scheduleindex* tail;	/* 指向尾节点指针 */
 	Scheduleindex* current;	/* 当前指针，用于辅助遍历链表 */
 }STaskassigmentlist;
+
+/* 定义Criteria结构体, C_05评估准则数组指针(用于计数) */
+typedef struct _Criteria
+{
+	int flag;  /* 标志 */
+	int count; /* 计数器 */
+}SCriteria;
+
 
 #endif
