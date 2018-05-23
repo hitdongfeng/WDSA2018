@@ -439,6 +439,7 @@ void FreeMemory(LinkedList*	SerialSchedule,STaskassigmentlist* Schedule)
 int main(void)
 {
 	int errcode = 0;	//错误编码 
+	inpfile = "BBM_Scenario1.inp";
 
 	STaskassigmentlist* Schedule; /* 工程队调度指针(包含初始解和新增解) */
 	Schedule = (STaskassigmentlist*)calloc(MAX_CREWS, sizeof(STaskassigmentlist));
@@ -451,7 +452,7 @@ int main(void)
 	if (errcode) { fprintf(ErrFile, ERR406); return (406); }
 
 	/* 打开inp文件 */
-	Open_inp_file("BBM_Scenario1.inp", "BBM_Scenario1.rpt", "");
+	Open_inp_file(inpfile, "report.rpt", "");
 
 	/* 获取爆管/漏损管道喷射节点索引、喷射系数、管道索引; 医院及消火栓节点、管道索引 */
 	Get_FailPipe_keyfacility_Attribute();

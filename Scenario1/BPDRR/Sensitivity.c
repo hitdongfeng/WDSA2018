@@ -207,25 +207,74 @@ int Visible_Damages_initial(long time)
 	return errcode;
 }
 
-int Breaks_Adjacent_operation(int index,float status,float emitter)
+int Breaks_Adjacent_operation(int type, int index,int code, float status,float emitter)
 /**----------------------------------------------------------------
-**  输入:  index 爆管在仓库中的索引(以0开始)
+**  输入:  type:类型: 1.Isolate, 4.Reopen
+**		  index 爆管在仓库中的索引(以0开始)
+**		  code: link parameter code (EN_INITSTATUS,EN_STATUS)
 **		  status 管道初始状态, 0:关闭; 1:开启
+**		  emitter 爆管节点喷射系数
 **  输出:  Error code
 **  功能:  关闭或开启爆管附近管道，对爆管进行隔离或复原
 **----------------------------------------------------------------*/
 {
 	int errcode=0, errsum = 0;
 	
+	float STATUS,EMITTER;//
+
 	for (int i = 0; i < BreaksRepository[index].num_isovalve; i++)
 	{
-		ERR_CODE(ENsetlinkvalue(BreaksRepository[index].pipes[i].pipeindex, EN_INITSTATUS, status));
+		ERR_CODE(ENsetlinkvalue(BreaksRepository[index].pipes[i].pipeindex, code, status));
 		if (errcode)	errsum++;
+
+		ERR_CODE(ENgetlinkvalue(BreaksRepository[index].pipes[i].pipeindex, EN_STATUS, &STATUS));//
+		printf("pipeID: %s, status: %f\n", BreaksRepository[index].pipes[i].pipeID, STATUS);//
 	}
 	ERR_CODE(ENsetnodevalue(BreaksRepository[index].nodeindex, EN_EMITTER, emitter));
 	if (errcode)	errsum++;
+	ERR_CODE(ENgetnodevalue(BreaksRepository[index].nodeindex, EN_EMITTER, &EMITTER));//
+	printf("nodeID: %s, emitter: %f\n", BreaksRepository[index].nodeID, EMITTER);//
+
+	if (type == _Reopen)
+	{
+		ERR_CODE(ENsetlinkvalue(BreaksRepository[index].pipeindex, code, status));
+		if (errcode)	errsum++;
+
+		ERR_CODE(ENgetlinkvalue(BreaksRepository[index].pipeindex, EN_STATUS, &STATUS));//
+		printf("pipeID: %s, status: %f\n", BreaksRepository[index].pipeID, STATUS);//
+	}
 
 	if (errsum) errcode = 415;
+
+	return errcode;
+}
+
+int Leaks_operation(int index, int code, float status, float emitter)
+/**----------------------------------------------------------------
+**  输入:  index 爆管在仓库中的索引(以0开始)
+**		  code: link parameter code (EN_INITSTATUS,EN_STATUS)
+**		  status 管道初始状态, 0:关闭; 1:开启
+**		  emitter 漏损节点喷射系数
+**  输出:  Error code
+**  功能:  修复漏损管道，对漏损管道进行复原
+**----------------------------------------------------------------*/
+{
+	int errcode = 0, errsum = 0; /* 错误编码 */
+
+	float STATUS, EMITTER;//
+
+	ERR_CODE(ENsetlinkvalue(LeaksRepository[index].pipeindex, code, status));
+	if (errcode)	errsum++;
+	ERR_CODE(ENgetlinkvalue(LeaksRepository[index].pipeindex, EN_STATUS, &STATUS));//
+	printf("pipeID: %s, status: %f\n", LeaksRepository[index].pipeID, STATUS);//
+
+
+	ERR_CODE(ENsetnodevalue(LeaksRepository[index].nodeindex, EN_EMITTER, emitter));
+	if (errcode)	errsum++;
+	ERR_CODE(ENgetnodevalue(LeaksRepository[index].nodeindex, EN_EMITTER, &EMITTER));//
+	printf("nodeID: %s, emitter: %f\n", LeaksRepository[index].nodeID, EMITTER);//
+
+	if (errsum) errcode = 421;
 
 	return errcode;
 }
@@ -349,7 +398,7 @@ int SensitivityAnalysis(long starttime,long endtime)
 
 		if (type == _Break)
 		{
-			ERR_CODE(Breaks_Adjacent_operation(index, 0,0));
+			ERR_CODE(Breaks_Adjacent_operation(_Isolate,index, EN_INITSTATUS,0,0));
 			ERR_CODE(GetSerCapcPeriod(starttime, endtime));
 
 			/* 打印每个模拟步长的供水能力计算结果 */
@@ -376,7 +425,7 @@ int SensitivityAnalysis(long starttime,long endtime)
 
 			/* 还原管道初始状态 */
 				emitter = BreaksRepository[index].emittervalue;
-				ERR_CODE(Breaks_Adjacent_operation(index, 1, emitter));
+				ERR_CODE(Breaks_Adjacent_operation(_Isolate,index, EN_INITSTATUS, 1, emitter));
 				printf("Accumulates number of visible breaks: %d\n", count++);
 		}
 		IniVisDemages.current = IniVisDemages.current->next;

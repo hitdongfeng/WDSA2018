@@ -78,8 +78,8 @@ unsigned long genrand_int32(void)
         int kk;
 
         if (mti == N+1)   /* if init_genrand() has not been called, */
-            //init_genrand(5489UL); /* a default initial seed is used */
-			init_genrand((unsigned long)rawtime); //Added by zqz
+            init_genrand(5489UL); /* a default initial seed is used */
+			//init_genrand((unsigned long)rawtime); //Added by zqz
 
         for (kk=0;kk<N-M;kk++) {
             y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);

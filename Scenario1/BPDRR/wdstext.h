@@ -20,8 +20,12 @@
 #define ERR414	"Function Error 414: one or more errors in function GetSerCapcPeriod!\n"
 #define ERR415	"Function Error 415: one or more errors in function Add_tail!\n"
 #define ERR416	"Function Error 416: one or more errors in function Get_Select_Repository!\n"
-#define ERR417	"Function Error 417: one or more errors in function Task_Assignment!\n"
-#define ERR418	"Function Error 418: one or more errors in function Memory_Allocation!\n"
+#define ERR417	"Function Error 418: one or more errors in function Memory_Allocation!\n"
+#define ERR418	"Function Error 419: one or more errors in function InitialGroups!\n"
+#define ERR419	"Function Error 419: one or more errors in function Calcalatio_Objective_Value!\n"
+#define ERR420	"System Error 420: Can not close the hydraulic model input file!\n"
+#define ERR421	"Function Error 421: one or more errors in function Leaks_operation!\n"
+
 
 #endif
 

@@ -9,16 +9,21 @@
 #define	  Ndemands	 4201		/* 管网需水量节点数量(需水量>0) */
 #define	  Start_pipeindex	6440/* pdd模型管道索引起始值(pdd模型节点水量为0，由对应的管道流量代替) */
 #define	  RestorStartTime 1800	/* 开始修复时刻(秒) */
+#define   SimulationStartTime 0  /* 水力模拟开始时刻 */
+#define	  SimulationEndTime 604800 /* 水力模拟结束时刻 */
 
-#define   MAX_CREWS	 3			/* 工程队数量 */
-#define   MAX_LINE   500        /* data.txt文件每行最大字符数 */
-#define   MAX_TOKS   50         /* data.txt文件每行最大字段数 */
-#define	  MAX_ID	 31         /* ID最大字符数 */
-#define	  Time_Step	 900		/* 水力模拟时间步长(秒) */
-#define	  Pattern_length 24		/* 用水量时间模式长度 */
-#define	  Break_Weight_Leak	0.5 /* 分配任务时，爆管与漏损选取权重 */
-#define	  NUM_BreakOperation 2  /* 爆管维修操作流程数量(隔离+替换) */
-#define	  NUM_LeakOperation 1	/* 漏损维修操作流程数量(维修) */
+#define   MAX_CREWS	 3				/* 工程队数量 */
+#define   MAX_LINE   500			/* data.txt文件每行最大字符数 */
+#define   MAX_TOKS   50				/* data.txt文件每行最大字段数 */
+#define	  MAX_ID	 31				/* ID最大字符数 */
+#define	  Time_Step	 900			/* 水力模拟时间步长(秒) */
+#define	  Pattern_length 24			/* 用水量时间模式长度 */
+#define	  Break_Weight_Leak	0.5		/* 分配任务时，爆管与漏损选取权重 */
+#define	  NUM_BreakOperation 2		/* 爆管维修操作流程数量(隔离+替换) */
+#define	  NUM_LeakOperation 1		/* 漏损维修操作流程数量(维修) */
+#define	  MAX_Fire_Volume 756000	/* 每个消火栓总供水量(L) */
+#define	  NUM_Criteria	6			/* 评价准则数量 */
+#define	  Time_of_Consecutive 8		/* 节点连续缺水时间(小时) */
 
 
 #define   DATA_SEPSTR    " \t\n\r" /* data.txt文件字段分割符 */
@@ -92,9 +97,6 @@ typedef struct Firefight SFirefight;
 /* 定义爆管结构体 */
 struct Breaks
 {
-	int isolate_flag;		//爆管隔离标识, 0:未隔离; 1:隔离
-	int replace_flag;		//爆管替换标识, 0:未替换; 1:替换
-	int reopen_flag;		//阀门开启标识, 0:未开启; 1:开启
 	int isolate_time;		//隔离爆管所需要的时间(minutes)
 	int replace_time;		//爆管修复时间(hours)
 	int num_isovalve;		//隔离爆管所需要关闭的管道数量

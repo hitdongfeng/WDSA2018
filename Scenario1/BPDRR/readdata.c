@@ -124,9 +124,9 @@ void Init_pointers()
 	ExistSchedule = NULL;				/* 工程队调度指针 */
 	initializeList(&decisionlist);	/* 决策变量指针结构体 */
 	initializeList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
-	initializeList(&NewVisDemages);	/* 修复过程中新出现的可见受损管道数组指针 */
 	ActuralBaseDemand = NULL;		/* 节点实际需水量数组指针 */
 	iniSercaplist(&SerCapcPeriod);	/* 指定时段内每个模拟步长系统供水能力结构体 */
+	Criteria = NULL;				/* 评估准则数组指针(存储每个步长每个准则中间计算结果) */
 }
 
 int  Str_match(char *str, char *substr)
@@ -252,7 +252,12 @@ int  Alloc_Memory()
 
 	ActuralBaseDemand = (float**)calloc(Ndemands, sizeof(float*));
 	for (int i = 0; i < Ndemands; i++)
+	{
 		ActuralBaseDemand[i] = (float*)calloc(Pattern_length, sizeof(float));
+		ERR_CODE(MEM_CHECK(ActuralBaseDemand[i]));	if (errcode) err_count++;
+	}
+
+	Criteria = (int*)calloc(Ndemands, sizeof(int));
 
 	ERR_CODE(MEM_CHECK(Hospitals));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(Firefighting));	if (errcode) err_count++;
@@ -260,6 +265,7 @@ int  Alloc_Memory()
 	ERR_CODE(MEM_CHECK(LeaksRepository));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(ExistSchedule));	if (errcode) err_count++;
 	ERR_CODE(MEM_CHECK(ActuralBaseDemand));	if (errcode) err_count++;
+	ERR_CODE(MEM_CHECK(Criteria));	if (errcode) err_count++;
 
 	if (err_count)
 	{
@@ -728,14 +734,6 @@ void Emptymemory()
 		IniVisDemages.current = IniVisDemages.head;
 	}
 
-	/* 释放NewVisDemages链表指针 */
-	NewVisDemages.current = NewVisDemages.head;
-	while (NewVisDemages.current != NULL)
-	{
-		NewVisDemages.head = NewVisDemages.head->next;
-		SafeFree(NewVisDemages.current);
-		NewVisDemages.current = NewVisDemages.head;
-	}
 
 	/* 释放ActuralBaseDemand数组指针 */
 	for (int i = 0; i < Ndemands; i++)
@@ -752,6 +750,11 @@ void Emptymemory()
 		SafeFree(SerCapcPeriod.current);
 		SerCapcPeriod.current = SerCapcPeriod.head;
 	}
+
+	/* 释放Criteria内存 */
+	SafeFree(Criteria);
+
+
 }
 
 //#define READDATA
