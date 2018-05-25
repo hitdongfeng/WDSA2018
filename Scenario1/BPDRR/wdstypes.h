@@ -23,7 +23,7 @@
 #define	  NUM_LeakOperation 1		/* 漏损维修操作流程数量(维修) */
 #define	  MAX_Fire_Volume 756000	/* 每个消火栓总供水量(L) */
 #define	  NUM_Criteria	6			/* 评价准则数量 */
-#define	  Time_of_Consecutive 8		/* 节点连续缺水时间(小时) */
+#define	  Time_of_Consecutive 8 		/* 节点连续缺水时间(小时) */
 #define	  FLow_Tolerance	1e-3	/* 流量容差 */
 
 

@@ -51,6 +51,7 @@ int InitialGroups()
 **--------------------------------------------------------------*/
 {
 	int errcode = 0, err_count = 0;
+	Chrom_length = 0; /* 个体染色体长度 */
 	for (int i = 0; i < Num_group; i++)
 	{
 		/*  随机生成可见爆管/漏损操作顺序，供工程队从中选取 */
@@ -68,29 +69,46 @@ int InitialGroups()
 		Groups[i].P_Reproduction = 0;
 		Groups[i].objvalue = 0;
 
-		///* 打印 Schedule 结构体数值 */
-		//for (int j = 0; j < MAX_CREWS; j++)
-		//{
-		//	printf("\nSchedule[%d]:\n", j);
-		//	Groups[i].Schedule[j].current = Groups[i].Schedule[j].head;
-		//	while (Groups[i].Schedule[j].current != NULL)
-		//	{
-		//		printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
-		//			Groups[i].Schedule[j].current->pointer->index, Groups[i].Schedule[j].current->pointer->type,
-		//			Groups[i].Schedule[j].current->pointer->starttime, Groups[i].Schedule[j].current->pointer->endtime);
-		//		Groups[i].Schedule[j].current = Groups[i].Schedule[j].current->next;
-		//	}
-		//	printf("\n");
-		//}
+		/* 打印SerialSchedule结构体数值 */
+		Groups[i].SerialSchedule->current = Groups[i].SerialSchedule->head;
+		while (Groups[i].SerialSchedule->current != NULL)
+		{
+			printf("index: %d	type: %d\n", Groups[i].SerialSchedule->current->index, Groups[i].SerialSchedule->current->type);
 
-		//printf("\n***********************************\n");
+			Groups[i].SerialSchedule->current = Groups[i].SerialSchedule->current->next;
+		}
+		printf("\n");
+
+		/* 打印 Schedule 结构体数值 */
+		for (int j = 0; j < MAX_CREWS; j++)
+		{
+			printf("\nSchedule[%d]:\n", j);
+			Groups[i].Schedule[j].current = Groups[i].Schedule[j].head;
+			while (Groups[i].Schedule[j].current != NULL)
+			{
+				printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
+					Groups[i].Schedule[j].current->pointer->index, Groups[i].Schedule[j].current->pointer->type,
+					Groups[i].Schedule[j].current->pointer->starttime, Groups[i].Schedule[j].current->pointer->endtime);
+				Groups[i].Schedule[j].current = Groups[i].Schedule[j].current->next;
+			}
+			printf("\n");
+		}
+
+		printf("\n***********************************\n");
 
 		if (errcode) err_count++;
 	}
 
+	/* 获取个体染色体长度 */
+	Groups[0].SerialSchedule->current = Groups[0].SerialSchedule->head;
+	while (Groups[0].SerialSchedule->current != 0)
+	{
+		Chrom_length++;
+		Groups[0].SerialSchedule->current = Groups[0].SerialSchedule->current->next;
+	}
+		
 	if (err_count)
 		errcode = 419;
-
 	return errcode;
 }
 
@@ -325,9 +343,323 @@ int Select_Individual()
 	return 422;
 }
 
-void GA_Cross(Solution* Father, Solution* Mother)
+int* Find_Mother_Index(Solution* Father, Solution* Mother)
+/*--------------------------------------------------------------
+**  Input:   Father: 父代个体, Mother: 母代个体
+**  Output:  母代在父代对应变量的索引数组指针
+**  Purpose: 返回母代在父代对应变量的索引
+**--------------------------------------------------------------*/
 {
+	int i = 0,j;
+	int *Mother_index = (int*)calloc(Chrom_length, sizeof(int));
 
+	Mother->SerialSchedule->current = Mother->SerialSchedule->head;
+	while (Mother->SerialSchedule->current != NULL)
+	{
+		j = 0;
+		Father->SerialSchedule->current = Father->SerialSchedule->head;
+		while (Father->SerialSchedule->current != NULL)
+		{
+			if ((Father->SerialSchedule->current->index == Mother->SerialSchedule->current->index)
+				&& (Father->SerialSchedule->current->type == Mother->SerialSchedule->current->type))
+			{
+				Mother_index[i] = j;
+				break;
+			}
+			j++;
+			Father->SerialSchedule->current = Father->SerialSchedule->current->next;
+		}
+
+		i++;
+		Mother->SerialSchedule->current = Mother->SerialSchedule->current->next;
+	}
+	
+	return Mother_index;
+}
+
+int Get_Conflict_Length(int* Detection_Cross, int* Model_Cross, int Length_Cross)
+/*--------------------------------------------------------------
+**  Input:   Detection_Cross:当前搜索的个体, 即找冲突的对象
+**			 Model_Cross: 另一父代个体
+**			 Length_Cross:交叉的变量数量
+**  Output:  产生冲突的变量数量
+**  Purpose: 找到Father_Cross和Mother_cross中产生冲突的变量数量
+**--------------------------------------------------------------*/
+{
+	int Conflict_Length = 0;
+	int flag_Conflict;
+	for (int i = 0; i < Length_Cross; i++)
+	{
+		flag_Conflict = 1;  // 判断是否属于冲突  
+		for (int j = 0; j < Length_Cross; j++)
+		{
+			if (Detection_Cross[i] == Model_Cross[j])
+			{
+				// 结束第二层循环  
+				j = Length_Cross;
+				flag_Conflict = 0;  // 该城市不属于冲突  
+			}
+		}
+		if (flag_Conflict)
+		{
+			Conflict_Length++;
+		}
+	}
+	return Conflict_Length;
+}
+
+int *Get_Conflict(int* Detection_Cross, int* Model_Cross, int Length_Cross, int Length_Conflict) 
+/*--------------------------------------------------------------
+**  Input:   Detection_Cross:当前搜索的个体, 即找冲突的对象
+**			 Model_Cross: 另一父代个体
+**			 Length_Cross:交叉的变量数量
+**			 Length_Conflict: 冲突的变量数量
+**  Output:  Error code
+**  Purpose: 找到Father_Cross和Mother_cross中产生冲突的变量
+**--------------------------------------------------------------*/
+{
+	int count = 0; /* 计数器 */
+	int flag_Conflict; /* 冲突标志, 0:不冲突, 1: 冲突 */
+	int *Conflict = (int *)calloc(Length_Conflict, sizeof(int));
+	
+	for (int i = 0; i < Length_Cross; i++)
+	{
+		flag_Conflict = 1;  // 判断是否属于冲突  
+		for (int j = 0; j < Length_Cross; j++)
+		{
+			if (Detection_Cross[i] == Model_Cross[j])
+			{
+				// 结束第二层循环  
+				j = Length_Cross;
+				flag_Conflict = 0;  // 该城市不属于冲突  
+			}
+		}
+		if (flag_Conflict)
+		{
+			Conflict[count] = Detection_Cross[i];
+			count++;
+		}
+	}
+	return Conflict;
+}
+
+Solution* Handle_Conflict(int* ConflictSolution, PDecision_Variable*pointer, int *Detection_Conflict, int *Model_Conflict, int Length_Conflict)
+/*--------------------------------------------------------------
+**  Input:   ConflictSolution:需要解决的冲突对象
+**			 pointer: 存储父代个体流程操作指针
+**			 Detection_Conflict: 存储冲突位置的父代个体
+**			 Model_Conflict: 存储冲突位置的母代个体
+**			 Length_Conflict: 冲突的变量数量
+**  Output:  处理好的子代个体指针
+**  Purpose: 处理冲突子代个体
+**--------------------------------------------------------------*/
+{
+	int errcode = 0;
+	int flag; /* 冲突标识 */
+	int index;
+	int temp=0; /* 临时变量 */
+	PDecision_Variable ptr; /* 临时变量 */
+	Solution* Offspring = (Solution*)calloc(1, sizeof(Solution));
+	LinkedList* p;	/* 临时结构体指针 */
+	/* 初始化相关参数 */
+	p = (LinkedList*)calloc(1, sizeof(LinkedList));
+	p->head = NULL; p->tail = NULL; p->current = NULL;
+
+	for (int i = 0; i < Length_Conflict; i++)
+	{
+		flag = 0;
+		index = 0;
+
+		/* [0, IndexCross_i) 寻找冲突 */
+		for (index = 0; index < IndexCross_i; index++)
+		{
+			if (Model_Conflict[i] == ConflictSolution[index])
+			{
+				flag = 1;
+				break;
+			}
+		}
+		/* 第一段没找到, 找剩余的部分(除了交换的基因段外) */
+		if (!flag)
+		{
+			/* [IndexCross_i + 1, Chrom_length) 寻找冲突 */
+			for (index = IndexCross_j + 1; index < Chrom_length; index++)
+			{
+				if (Model_Conflict[i] == ConflictSolution[index])
+					break;
+			}
+		}
+		ConflictSolution[index] = Detection_Conflict[i];
+	}
+
+	for (int i = 0; i < Chrom_length; i++)
+	{
+		if (pointer[ConflictSolution[i]]->type != _Repair)
+		{
+			for (int j = i+1; j < Chrom_length; j++)
+			{
+				if ((pointer[ConflictSolution[i]]->index == pointer[ConflictSolution[j]]->index)
+					&& (pointer[ConflictSolution[j]]->type != _Repair))
+				{
+					if (pointer[ConflictSolution[i]]->type > pointer[ConflictSolution[j]]->type)
+					{
+						temp= ConflictSolution[i];
+						ConflictSolution[i] = ConflictSolution[j];
+						ConflictSolution[j] = temp;
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	/* 编码转换为子代个体 */
+	for (int i = 0; i < Chrom_length; i++)
+	{
+		ptr = pointer[ConflictSolution[i]];
+		ERR_CODE(Add_tail(p,ptr->index,ptr->type,0,0));
+		if (errcode) {fprintf(ErrFile, ERR423);}
+	}
+	/*  将SerialSchedule链表中的所有指令分配至每个工程队 */
+	Offspring->SerialSchedule = p;
+	ERR_CODE(Task_Assignment(Offspring->SerialSchedule,Offspring->Schedule));
+
+	Offspring->C_01 = 0; Offspring->C_02 = 0; Offspring->C_03 = 0;
+	Offspring->C_04 = 0; Offspring->C_05 = 0; Offspring->C_06 = 0;
+	Offspring->P_Reproduction = 0; Offspring->objvalue = 0;
+
+	return Offspring;
+}
+
+
+int GA_Cross(Solution* Father, Solution* Mother)
+/*--------------------------------------------------------------
+**  Input:   Father: 父代个体, Mother: 母代个体
+**  Output:  Error code
+**  Purpose: GA交叉操作，从两个个体中产生一个新个体
+**--------------------------------------------------------------*/
+{
+	int errcode = 0, err_count = 0; /* 错误编码 */
+	int temp;	/* 临时变量 */
+	int Length_Cross;    /* 交叉的个数 */
+	int *Father_index, *Mother_index;
+	PDecision_Variable* Father_pointer;
+	int *Father_cross, *Mother_cross; /* 交叉基因段 */
+	int *Conflict_Father, *Conflict_Mother;  /* 存储冲突的位置 */   
+	int Length_Conflict;	/* 冲突的个数 */ 
+
+	/* 分配内存 */
+	Father_index = (int*)calloc(Chrom_length, sizeof(int));
+	Father_pointer = (PDecision_Variable*)calloc(Chrom_length, sizeof(PDecision_Variable));
+	ERR_CODE(MEM_CHECK(Father_index));	if (errcode) err_count++;
+	ERR_CODE(MEM_CHECK(Father_pointer));	if (errcode) err_count++;
+	for (int i = 0; i < Chrom_length; i++)
+		Father_index[i] = i;
+	Mother_index = Find_Mother_Index(Father, Mother);
+
+	temp = 0;
+	Father->SerialSchedule->current = Father->SerialSchedule->head;
+	while (Father->SerialSchedule->current != NULL)
+	{
+		Father_pointer[temp] = Father->SerialSchedule->current;
+		temp++;
+		Father->SerialSchedule->current = Father->SerialSchedule->current->next;
+	}
+
+/* 随机产生交叉位置，保证 IndexCross_i < IndexCross_j */
+	IndexCross_i = (int)floor(genrand_real1()*(Chrom_length-0.0001));
+	IndexCross_j = (int)floor(genrand_real1()*(Chrom_length - 0.0001));
+	while ((IndexCross_i == IndexCross_j) || abs(IndexCross_i - IndexCross_j) == (Chrom_length - 1))
+	{
+		IndexCross_j = (int)floor(genrand_real1()*(Chrom_length - 0.0001));
+	}
+	if (IndexCross_i > IndexCross_j)
+	{
+		temp = IndexCross_i;
+		IndexCross_i = IndexCross_j;
+		IndexCross_j = temp;
+	}
+
+	/* 交叉基因段 */
+	Length_Cross = IndexCross_j - IndexCross_i+1; /* 交叉的变量数量 */
+	Father_cross = (int*)calloc(Length_Cross, sizeof(int)); /* 父代遗传基因段 */
+	Mother_cross = (int*)calloc(Length_Cross, sizeof(int)); /* 母代遗传基因段 */
+	ERR_CODE(MEM_CHECK(Father_cross));	if (errcode) err_count++;
+	ERR_CODE(MEM_CHECK(Father_cross));	if (errcode) err_count++;
+	temp = 0;
+	for (int i = IndexCross_i; i <= IndexCross_j; i++)
+	{
+		Father_cross[temp] = Father_index[i];
+		Mother_cross[temp] = Mother_index[i];
+		temp++;
+	}
+
+	// 开始交叉 - 找到Father_Cross和Mother_cross中产生冲突的变量
+	Length_Conflict = Get_Conflict_Length(Father_cross, Mother_cross, Length_Cross);
+	Conflict_Father = Get_Conflict(Father_cross, Mother_cross, Length_Cross, Length_Conflict);
+	Conflict_Mother = Get_Conflict(Mother_cross, Father_cross, Length_Cross, Length_Conflict);
+
+	/*  Father and Mother 交换基因段 */
+	for (int i = IndexCross_i; i <= IndexCross_j; i++)
+	{
+		temp = Father_index[i];
+		Father_index[i] = Mother_index[i];
+		Mother_index[i] = temp;
+	}
+
+	for (int i = 0; i < Chrom_length; i++)
+	{
+		printf("%d	", Father_index[i]);
+	}
+	printf("\n");
+	for (int i = 0; i < Chrom_length; i++)
+	{
+		printf("%d	", Mother_index[i]);
+	}
+	printf("\n");
+
+	/* 解决父代和母代交叉后的冲突问题 */
+	Solution* Descendant_ONE = Handle_Conflict(Father_index, Father_pointer, Conflict_Father, Conflict_Mother, Length_Conflict);
+	Solution* Descendant_TWO = Handle_Conflict(Mother_index, Father_pointer, Conflict_Mother, Conflict_Father, Length_Conflict);
+
+	/* 打印SerialSchedule结构体数值 */
+	Descendant_TWO->SerialSchedule->current = Descendant_TWO->SerialSchedule->head;
+	while (Descendant_TWO->SerialSchedule->current != NULL)
+	{
+		printf("index: %d	type: %d\n", Descendant_TWO->SerialSchedule->current->index, Descendant_TWO->SerialSchedule->current->type);
+
+		Descendant_TWO->SerialSchedule->current = Descendant_TWO->SerialSchedule->current->next;
+	}
+	printf("\n");
+
+	/* 打印 Schedule 结构体数值 */
+	for (int j = 0; j < MAX_CREWS; j++)
+	{
+		printf("\nSchedule[%d]:\n", j);
+		Descendant_TWO->Schedule[j].current = Descendant_TWO->Schedule[j].head;
+		while (Descendant_TWO->Schedule[j].current != NULL)
+		{
+			printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
+				Descendant_TWO->Schedule[j].current->pointer->index, Descendant_TWO->Schedule[j].current->pointer->type,
+				Descendant_TWO->Schedule[j].current->pointer->starttime, Descendant_TWO->Schedule[j].current->pointer->endtime);
+			Descendant_TWO->Schedule[j].current = Descendant_TWO->Schedule[j].current->next;
+		}
+		printf("\n");
+	}
+
+	printf("\n***********************************\n");
+
+
+	/* 释放内存 */
+	SafeFree(Father_index);
+	SafeFree(Mother_index);
+	SafeFree(Father_pointer);
+	SafeFree(Father_cross);
+	SafeFree(Mother_cross);
+	SafeFree(Conflict_Father);
+	SafeFree(Conflict_Mother);
+	
+	return 0;
 }
 
 
@@ -369,14 +701,16 @@ int main(void)
 	ERR_CODE(InitialGroups());
 	if (errcode) fprintf(ErrFile, ERR418);
 
-	for (int i = 0; i < Num_group; i++)
-	{
-		ERR_CODE(Calculate_Objective_Value(&Groups[i]));
-		printf("C_01= %d, C_02= %d, C_03= %f, C_04= %f, C_05= %d, C_06= %f, Sum= %f\n",
-			Groups[i].C_01, Groups[i].C_02, Groups[i].C_03, Groups[i].C_04, Groups[i].C_05,
-			Groups[i].C_06, Groups[i].objvalue);
-		//printf("Complited: %d / %d\n", i + 1, Num_group);
-	}
+	ERR_CODE(GA_Cross(&Groups[0], &Groups[2]));
+
+	//for (int i = 0; i < Num_group; i++)
+	//{
+	//	ERR_CODE(Calculate_Objective_Value(&Groups[i]));
+	//	printf("C_01= %d, C_02= %d, C_03= %f, C_04= %f, C_05= %d, C_06= %f, Sum= %f\n",
+	//		Groups[i].C_01, Groups[i].C_02, Groups[i].C_03, Groups[i].C_04, Groups[i].C_05,
+	//		Groups[i].C_06, Groups[i].objvalue);
+	//	//printf("Complited: %d / %d\n", i + 1, Num_group);
+	//}
 
 	getchar();
 	return 0;

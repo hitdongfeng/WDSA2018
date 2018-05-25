@@ -4,7 +4,7 @@
 
 
 /* 定义GA相关参数 */
-int Num_group = 100;		/* 群体个体规模 */
+int Num_group = 10;		/* 群体个体规模 */
 int Num_offs = 102;			/* 后代个体数量(Num_son = Num_group + 2) */
 int Num_iteration = 1000;	/* 迭代次数 */
 double P_mutation = 0.01;	/* 变异概率 */
@@ -25,10 +25,11 @@ typedef struct {
 	STaskassigmentlist Schedule[MAX_CREWS]; /* 工程队调度指针(包含初始解和新增解) */
 }Solution;
 
-
-
 Solution* Groups;			/* 存储群体 */  
 Solution* Offspring;		/* 存储杂交后的个体 */
+int IndexCross_i;			/* 起始交叉点 */
+int IndexCross_j;			/* 终止交叉点 */
+int Chrom_length;			/* 个体染色体长度 */
 
 
 /* 定义相关函数 */
