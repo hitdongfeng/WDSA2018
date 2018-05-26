@@ -27,7 +27,9 @@
 #define ERR421	"Function Error 421: one or more errors in function Leaks_operation!\n"
 #define	ERR422	"Function Error 422: one or more errors in function Select_Individual!\n"
 #define	ERR423	"Function Error 423: one or more errors in function Handle_Conflict!\n"
-
+#define	ERR424	"Function Error 424: one or more errors in function GA_Cross!\n"
+#define	ERR425	"Function Error 425: one or more errors in function GA_Variation!\n"
+#define	ERR426	"Function Error 426: one or more errors in function GA_Evolution!\n"
 
 #endif
 
