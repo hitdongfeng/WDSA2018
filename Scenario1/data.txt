@@ -143,8 +143,8 @@ F54531	35
 
 [Schedule_Crew1]
 ;index	type	starttime	endtime
-0	1	1800	4500
-0	2	4500	54900
+;0	1	1800	4500
+;0	2	4500	54900
 
 [Schedule_Crew2]
 ;index	type	starttime	endtime
@@ -155,7 +155,7 @@ F54531	35
 
 [Decision_Variable]
 ;index	type
-;0	1
+0	1
 1	1
 2	1
 3	1

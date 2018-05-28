@@ -29,13 +29,17 @@ int Memory_Allocation()
 {
 	int errcode = 0, err_sum = 0;
 
-	Groups = (Solution*)calloc(Num_group, sizeof(Solution));
+	Groups = (Solution**)calloc(Num_group, sizeof(Solution*));
+	for (int i = 0; i < Num_group; i++)
+	{
+		Groups[i] = (Solution*)calloc(1, sizeof(Solution));
+		ERR_CODE(MEM_CHECK(Groups[i]));	if (errcode) err_sum++;
+	}
+
 	Offspring = (Solution**)calloc(Num_offs, sizeof(Solution*));
-	Best_Solution= (Solution*)calloc(1, sizeof(Solution));
 
 	ERR_CODE(MEM_CHECK(Groups));	if (errcode) err_sum++;
 	ERR_CODE(MEM_CHECK(Offspring));	if (errcode) err_sum++;
-	ERR_CODE(MEM_CHECK(Best_Solution));	if (errcode) err_sum++;
 
 	if (err_sum)
 	{
@@ -54,36 +58,36 @@ void Free_Solution(Solution* ptr)
 **--------------------------------------------------------------*/
 {
 	/* 释放SerialSchedule链表指针 */
-	ptr->SerialSchedule->current = ptr->SerialSchedule->head;
-	while (ptr->SerialSchedule->current != NULL)
+	if (ptr != NULL)
 	{
-		ptr->SerialSchedule->head = ptr->SerialSchedule->head->next;
-		SafeFree(ptr->SerialSchedule->current);
-		ptr->SerialSchedule->current = ptr->SerialSchedule->head;
-	}
-
-	///* 释放NewVisDemages链表指针 */
-	//ptr->NewVisDemages->current = ptr->NewVisDemages->head;
-	//while (ptr->NewVisDemages->current != NULL)
-	//{
-	//	ptr->NewVisDemages->head = ptr->NewVisDemages->head->next;
-	//	SafeFree(ptr->NewVisDemages->current);
-	//	ptr->NewVisDemages->current = ptr->NewVisDemages->head;
-	//}
-
-	/* 释放Schedule数组内存 */
-	for (int i = 0; i < MAX_CREWS; i++)
-	{
-		ptr->Schedule[i].current = ptr->Schedule[i].head;
-		while (ptr->Schedule[i].current != NULL)
+		if (ptr->SerialSchedule != NULL)
 		{
-			ptr->Schedule[i].head = ptr->Schedule[i].head->next;
-			SafeFree(ptr->Schedule[i].current);
-			ptr->Schedule[i].current = ptr->Schedule[i].head;
+			ptr->SerialSchedule->current = ptr->SerialSchedule->head;
+			while (ptr->SerialSchedule->current != NULL)
+			{
+				ptr->SerialSchedule->head = ptr->SerialSchedule->head->next;
+				SafeFree(ptr->SerialSchedule->current);
+				ptr->SerialSchedule->current = ptr->SerialSchedule->head;
+			}
 		}
-	}
 
-	SafeFree(ptr);
+		/* 释放Schedule数组内存 */
+		for (int i = 0; i < MAX_CREWS; i++)
+		{
+			if (ptr->Schedule[i].head != NULL)
+			{
+				ptr->Schedule[i].current = ptr->Schedule[i].head;
+				while (ptr->Schedule[i].current != NULL)
+				{
+					ptr->Schedule[i].head = ptr->Schedule[i].head->next;
+					SafeFree(ptr->Schedule[i].current);
+					ptr->Schedule[i].current = ptr->Schedule[i].head;
+				}
+			}
+		}
+
+		SafeFree(ptr);
+	}
 }
 
 void Free_GAmemory()
@@ -95,14 +99,12 @@ void Free_GAmemory()
 {
 	/* 释放种群Groups内存 */
 	for (int i = 0; i < Num_group; i++)
-		Free_Solution(&Groups[i]);
+		Free_Solution(Groups[i]);
 
 	/* 释放子代Offspring内存 */
 	for (int i = 0; i < Num_offs; i++)
 		Free_Solution(Offspring[i]);
 
-	/* 释放最优解内存 */
-	Free_Solution(Best_Solution);
 }
 
 int InitialGroups()
@@ -117,30 +119,30 @@ int InitialGroups()
 	for (int i = 0; i < Num_group; i++)
 	{
 		/*  随机生成可见爆管/漏损操作顺序，供工程队从中选取 */
-		Groups[i].SerialSchedule = Randperm();
+		Groups[i]->SerialSchedule = Randperm();
 
 		/*  将SerialSchedule链表中的所有指令分配至每个工程队 */
-		ERR_CODE(Task_Assignment(Groups[i].SerialSchedule, Groups[i].Schedule));
+		ERR_CODE(Task_Assignment(Groups[i]->SerialSchedule, Groups[i]->Schedule));
 
-		Groups[i].C_01 = 0;Groups[i].C_02 = 0;Groups[i].C_03 = 0;
-		Groups[i].C_04 = 0;Groups[i].C_05 = 0;Groups[i].C_06 = 0;
-		Groups[i].P_Reproduction = 0;Groups[i].objvalue = 0;
+		Groups[i]->C_01 = 0;Groups[i]->C_02 = 0;Groups[i]->C_03 = 0;
+		Groups[i]->C_04 = 0;Groups[i]->C_05 = 0;Groups[i]->C_06 = 0;
+		Groups[i]->P_Reproduction = 0;Groups[i]->objvalue = 0;
 
 		if (errcode) err_count++;
 	}
 
 	/* 获取个体染色体长度 */
-	Groups[0].SerialSchedule->current = Groups[0].SerialSchedule->head;
-	while (Groups[0].SerialSchedule->current != 0)
+	Groups[0]->SerialSchedule->current = Groups[0]->SerialSchedule->head;
+	while (Groups[0]->SerialSchedule->current != 0)
 	{
 		Chrom_length++;
-		Groups[0].SerialSchedule->current = Groups[0].SerialSchedule->current->next;
+		Groups[0]->SerialSchedule->current = Groups[0]->SerialSchedule->current->next;
 	}
 
 	/* 计算每个个体的适应度值 */
 	for (int i = 0; i < Num_group; i++)
 	{
-		ERR_CODE(Calculate_Objective_Value(&Groups[i]));
+		ERR_CODE(Calculate_Objective_Value(Groups[i]));
 		if (errcode)	err_count++;
 		printf("Complited: %d / %d\n", i + 1, Num_group);
 	}
@@ -227,12 +229,12 @@ int Calculate_Objective_Value(Solution* sol)
 					}
 				}
 			}
-			/* 计算C_02、C_04、C_05 */
+			///* 计算C_02、C_04、C_05 */
 			for (int i = 0; i < Ndemands; i++)
 			{
 				ERR_CODE(ENgetlinkvalue(i + Start_pipeindex, EN_FLOW, &temflow));
 				if (errcode > 100) err_sum++;
-				if ((temflow < FLow_Tolerance) || (temflow - ActuralBaseDemand[i][s])>0.5)
+				if ((temflow < FLow_Tolerance) || (temflow - ActuralBaseDemand[i][s]) > 0.5)
 					temflow = 0.0;
 
 				if (temflow / ActuralBaseDemand[i][s] <= 0.5)
@@ -240,11 +242,11 @@ int Calculate_Objective_Value(Solution* sol)
 					sol->C_04 += (double)Time_Step / (Ndemands*60.0);
 
 					Criteria[i].count++;
-					if ((Criteria[i].count >= Time_of_Consecutive*(3600 / Time_Step)) && Criteria[i].flag==-1)
+					if ((Criteria[i].count >= Time_of_Consecutive * (3600 / Time_Step)) && Criteria[i].flag == -1)
 					{
 						sol->C_05++;
 						Criteria[i].flag = 1;
-					}	
+					}
 				}
 				else
 				{
@@ -323,6 +325,7 @@ int Calculate_Objective_Value(Solution* sol)
 					else if (temvar == _Repair)
 					{
 						ERR_CODE(Leaks_operation(temindex, EN_STATUS, 1, 0));
+						if (errcode) err_sum++;
 					}
 
 					sol->Schedule[i].current = sol->Schedule[i].current->next;
@@ -334,8 +337,10 @@ int Calculate_Objective_Value(Solution* sol)
 	} while (tstep > 0);
 
 	sol->objvalue = sol->C_01 + sol->C_02 + sol->C_03 + sol->C_04 + sol->C_05 + sol->C_06/1000000;
+	//sol->objvalue = sol->C_01;
 
-	ERR_CODE(ENclose()); /* 关闭水力模型 */
+	ERR_CODE(ENcloseH()); if (errcode) err_sum++;
+	ERR_CODE(ENclose()); if (errcode) err_sum++; /* 关闭水力模型 */
 	if (err_sum)
 		errcode = 419;
 	return errcode;
@@ -352,16 +357,16 @@ void Calc_Probablity()
 	double TempTotal_P = 0.0;
 
 	for (int i = 0; i < Num_group; i++)
-		total_objvalue += Groups[i].objvalue;
+		total_objvalue += Groups[i]->objvalue;
 
 	for (int i = 0; i < Num_group; i++)
 	{
-		Groups[i].P_Reproduction = (1.0 / Groups[i].objvalue)*total_objvalue;
-		TempTotal_P += Groups[i].P_Reproduction;
+		Groups[i]->P_Reproduction = (1.0 / Groups[i]->objvalue)*total_objvalue;
+		TempTotal_P += Groups[i]->P_Reproduction;
 	}
 
 	for (int i = 0; i < Num_group; i++)
-		Groups[i].P_Reproduction /= TempTotal_P;
+		Groups[i]->P_Reproduction /= TempTotal_P;
 }
 
 int Select_Individual()
@@ -376,7 +381,7 @@ int Select_Individual()
 
 	for (int i = 0; i < Num_group; i++)
 	{
-		distribution_P += Groups[i].P_Reproduction;
+		distribution_P += Groups[i]->P_Reproduction;
 		if (selection_P < distribution_P)
 			return i;
 	}
@@ -766,57 +771,17 @@ int GA_Variation(int Index_Offspring)
 	return errcode;
 }
 
-void Clone_Group(Solution* group, Solution* son)
+void Clone_Group(Solution** group, Solution** son)
 /*--------------------------------------------------------------
 **  Input:  group:种群个体指针, son: 后代个体指针
 **  Output:  None
 **  Purpose: 对两个个体进行复制操作
 **--------------------------------------------------------------*/
 {
-	group->C_01 = son->C_01;
-	group->C_02 = son->C_02;
-	group->C_03 = son->C_03;
-	group->C_04 = son->C_04;
-	group->C_05 = son->C_05;
-	group->C_06 = son->C_06;
-	group->objvalue = son->objvalue;
-	group->P_Reproduction = son->P_Reproduction;
-
-	/* 释放SerialSchedule链表指针 */
-	if (group->SerialSchedule != NULL)
-	{
-		group->SerialSchedule->current = group->SerialSchedule->head;
-		while (group->SerialSchedule->current != NULL)
-		{
-			group->SerialSchedule->head = group->SerialSchedule->head->next;
-			SafeFree(group->SerialSchedule->current);
-			group->SerialSchedule->current = group->SerialSchedule->head;
-		}
-	}
-
-
-	/* 释放Schedule数组内存 */
-	for (int i = 0; i < MAX_CREWS; i++)
-	{
-		if (group->Schedule[i].head != NULL)
-		{
-			group->Schedule[i].current = group->Schedule[i].head;
-			while (group->Schedule[i].current != NULL)
-			{
-				group->Schedule[i].head = group->Schedule[i].head->next;
-				SafeFree(group->Schedule[i].current);
-				group->Schedule[i].current = group->Schedule[i].head;
-			}
-		}
-	}
-
-	group->SerialSchedule = son->SerialSchedule;
-	for (int i = 0; i < MAX_CREWS; i++)
-	{
-		group->Schedule[i].head = son->Schedule[i].head;
-		group->Schedule[i].current = son->Schedule[i].current;
-		group->Schedule[i].tail = son->Schedule[i].tail;
-	}
+	Solution* temp;
+	temp = *group;
+	*group = *son;
+	*son = temp;
 }
 
 void BestSolution()
@@ -827,36 +792,35 @@ void BestSolution()
 **--------------------------------------------------------------*/
 {
 	int index = 0;
-	Best_Solution->objvalue = Groups[0].objvalue;
+	double Optimalvalue;
+	Optimalvalue = Groups[0]->objvalue;
 	for (int i = 1; i < Num_group; i++)
 	{
-		if (Best_Solution->objvalue > Groups[i].objvalue)
+		if (Optimalvalue > Groups[i]->objvalue)
 		{
-			Best_Solution->objvalue = Groups[i].objvalue;
+			Optimalvalue = Groups[i]->objvalue;
 			index = i;
 		}
 	}
-	Clone_Group(Best_Solution, &Groups[index]);
 
 	/* 打印 Schedule 结构体数值 */
 	for (int j = 0; j < MAX_CREWS; j++)
 	{
 		fprintf(TemSolution,"Schedule[%d]:\n", j);
-		Best_Solution->Schedule[j].current = Best_Solution->Schedule[j].head;
-		while (Best_Solution->Schedule[j].current != NULL)
+		Groups[index]->Schedule[j].current = Groups[index]->Schedule[j].head;
+		while (Groups[index]->Schedule[j].current != NULL)
 		{
 			fprintf(TemSolution,"index: %d	type: %d	starttime: %d	endtime: %d\n",
-				Best_Solution->Schedule[j].current->pointer->index, Best_Solution->Schedule[j].current->pointer->type,
-				Best_Solution->Schedule[j].current->pointer->starttime, Best_Solution->Schedule[j].current->pointer->endtime);
-			Best_Solution->Schedule[j].current = Best_Solution->Schedule[j].current->next;
+				Groups[index]->Schedule[j].current->pointer->index, Groups[index]->Schedule[j].current->pointer->type,
+				Groups[index]->Schedule[j].current->pointer->starttime, Groups[index]->Schedule[j].current->pointer->endtime);
+			Groups[index]->Schedule[j].current = Groups[index]->Schedule[j].current->next;
 		}
 		fprintf(TemSolution, "\n");
 	}
 	/* 打印BestSolution */
-		fprintf(TemSolution, "C_01= %d, C_02= %d, C_03= %f, C_04= %f, C_05= %d, C_06= %f, Sum= %f\n",
-			Best_Solution->C_01, Best_Solution->C_02, Best_Solution->C_03, Best_Solution->C_04, Best_Solution->C_05,
-			Best_Solution->C_06, Best_Solution->objvalue);
-
+	fprintf(TemSolution, "C_01= %d, C_02= %d, C_03= %f, C_04= %f, C_05= %d, C_06= %f, Sum= %f\n",
+		Groups[index]->C_01, Groups[index]->C_02, Groups[index]->C_03, Groups[index]->C_04, Groups[index]->C_05,
+		Groups[index]->C_06, Groups[index]->objvalue);
 	fprintf(TemSolution, "\n***********************************\n");
 
 }
@@ -869,7 +833,7 @@ void GA_UpdateGroup()
 **--------------------------------------------------------------*/
 {
 	Solution* tempSolution;
-	/* 先对子代 - Offspring 依据适应度值进行排序 - 降序[按目标值从大到小] */  
+	/* 先对子代 - Offspring 依据适应度值进行排序 - 降序[按目标值从小到大] */  
 	for (int i = 0; i < Num_offs; i++)
 	{
 		for (int j = Num_offs - 1; j > i; j--)
@@ -888,13 +852,18 @@ void GA_UpdateGroup()
 	{
 		for (int j = 0; j < Num_group; j++)
 		{
-			if (Offspring[i]->objvalue < Groups[j].objvalue)
+			if (Offspring[i]->objvalue < Groups[j]->objvalue)
 			{
-				Clone_Group(&Groups[j], Offspring[i]);
+				Clone_Group(&Groups[j], &Offspring[i]);
 				break;
 			}
 		}
 	}
+
+	/* 子代删除 */
+	for(int i=0;i<Num_offs;i++)
+		Free_Solution(Offspring[i]);
+
 	BestSolution();
 }
 
@@ -911,7 +880,6 @@ int GA_Evolution()
 	int Father_index, Mother_index;	/* 父代、母代个体索引 */
 	double Is_Crossover;	/* 交叉概率随机数 */
 	double Is_mutation;		/* 变异概率随机数 */
-	double total_objvalue;	/* 后代所有个体总适应度值 */
 
 	while (iter < Num_iteration)
 	{
@@ -937,14 +905,14 @@ int GA_Evolution()
 			Is_Crossover = genrand_real1();
 			if (Is_Crossover <= P_crossover)
 			{
-				ERR_CODE(GA_Cross(&Groups[Father_index], &Groups[Mother_index]));
+				ERR_CODE(GA_Cross(Groups[Father_index], Groups[Mother_index]));
 				if (errcode) err_sum++;
 				M--;
 			}
 		}
 
 		/* 3.变异, 针对 Offspring[] 数组 */
-		total_objvalue = 0.0;
+		//total_objvalue = 0.0;
 
 		for (int IndexVariation = 0; IndexVariation < Length_SonSoliton; IndexVariation++)
 		{
@@ -959,14 +927,13 @@ int GA_Evolution()
 			ERR_CODE(Calculate_Objective_Value(Offspring[IndexVariation]));
 			if (errcode) err_sum++;
 
-			total_objvalue += Offspring[IndexVariation]->objvalue;
+			//total_objvalue += Offspring[IndexVariation]->objvalue;
 			printf("Complited: %d / %d\n", IndexVariation + 1, Length_SonSoliton);
 		}
 		
 		/* 4.更新个体, 参与对象: 父代+子代 */
-	/*	GA_UpdateGroup();
-		Calc_Probablity();*/
-		//BestSolution();
+		GA_UpdateGroup();
+		Calc_Probablity();
 		iter++;
 	}
 

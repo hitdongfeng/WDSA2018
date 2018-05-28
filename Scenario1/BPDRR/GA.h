@@ -5,10 +5,10 @@
 
 
 /* ¶¨ÒåGAÏà¹Ø²ÎÊı */
-int Num_group = 4;		/* ÈºÌå¸öÌå¹æÄ£ */
-int Num_offs = 4;			/* ºó´ú¸öÌåÊıÁ¿(Num_son = Num_group + 2) */
-int Num_iteration = 20;	/* µü´ú´ÎÊı */
-double P_mutation = 0.01;	/* ±äÒì¸ÅÂÊ */
+int Num_group = 100;		/* ÈºÌå¸öÌå¹æÄ£ */
+int Num_offs = 100;			/* ºó´ú¸öÌåÊıÁ¿(Num_son = Num_group + 2) */
+int Num_iteration = 10000;	/* µü´ú´ÎÊı */
+double P_mutation = 0.1;	/* ±äÒì¸ÅÂÊ */
 double P_crossover = 0.8;	/* ½»²æ¸ÅÂÊ */
 
 /* ¶¨ÒåSolution½á¹¹Ìå */
@@ -26,9 +26,8 @@ typedef struct {
 	STaskassigmentlist Schedule[MAX_CREWS]; /* ¹¤³Ì¶Óµ÷¶ÈÖ¸Õë(°üº¬³õÊ¼½âºÍĞÂÔö½â) */
 }Solution;
 
-Solution* Groups;			/* ´æ´¢ÈºÌå */  
+Solution** Groups;			/* ´æ´¢ÈºÌå */  
 Solution** Offspring;		/* ´æ´¢ÔÓ½»ºóµÄ¸öÌå */
-Solution* Best_Solution;	/* ×îÓÅ½â */
 int IndexCross_i;			/* ÆğÊ¼½»²æµã */
 int IndexCross_j;			/* ÖÕÖ¹½»²æµã */
 int Chrom_length;			/* ¸öÌåÈ¾É«Ìå³¤¶È */
@@ -49,7 +48,7 @@ int *Get_Conflict(int*, int*, int, int);/* ÕÒµ½Father_CrossºÍMother_crossÖĞ²úÉú³
 Solution* Handle_Conflict(int*, PDecision_Variable*, int*, int*, int);/*  ´¦Àí³åÍ»×Ó´ú¸öÌå */
 int GA_Cross(Solution*, Solution*);	/* GA½»²æ²Ù×÷£¬´ÓÁ½¸ö¸öÌåÖĞ²úÉúÒ»¸öĞÂ¸öÌå */
 int GA_Variation(int);				/* ¶Ôºó´ú½øĞĞ±äÒì²Ù×÷ */
-void Clone_Group(Solution*, Solution*);/* ¶ÔÁ½¸ö¸öÌå½øĞĞ¸´ÖÆ²Ù×÷ */
+void Clone_Group(Solution**, Solution**);/* ¶ÔÁ½¸ö¸öÌå½øĞĞ¸´ÖÆ²Ù×÷ */
 void BestSolution();				/* ²éÕÒ×îÓÅ½â */
 void GA_UpdateGroup();				/* ¸üĞÂÖÖÈº */
 int GA_Evolution();					/* GAÖ÷Ñ­»·¹ı³Ì */
