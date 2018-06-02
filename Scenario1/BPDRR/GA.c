@@ -120,6 +120,14 @@ int InitialGroups()
 	{
 		/*  随机生成可见爆管/漏损操作顺序，供工程队从中选取 */
 		Groups[i]->SerialSchedule = Randperm();
+		/* 打印SerialSchedule结构体数值 */
+		Groups[i]->SerialSchedule->current = Groups[i]->SerialSchedule->head;
+		while (Groups[i]->SerialSchedule->current != NULL)
+		{
+			printf("index: %d	type: %d\n", Groups[i]->SerialSchedule->current->index, Groups[i]->SerialSchedule->current->type);
+
+			Groups[i]->SerialSchedule->current = Groups[i]->SerialSchedule->current->next;
+		}
 
 		/*  将SerialSchedule链表中的所有指令分配至每个工程队 */
 		ERR_CODE(Task_Assignment(Groups[i]->SerialSchedule, Groups[i]->Schedule));
@@ -127,6 +135,21 @@ int InitialGroups()
 		Groups[i]->C_01 = 0;Groups[i]->C_02 = 0;Groups[i]->C_03 = 0;
 		Groups[i]->C_04 = 0;Groups[i]->C_05 = 0;Groups[i]->C_06 = 0;
 		Groups[i]->P_Reproduction = 0;Groups[i]->objvalue = 0;
+
+		/*打印 Schedule 结构体数值 */
+	for (int j = 0; j < MAX_CREWS; j++)
+	{
+		printf("\nSchedule[%d]:\n", j);
+		Groups[i]->Schedule[j].current = Groups[i]->Schedule[j].head;
+		while (Groups[i]->Schedule[j].current != NULL)
+		{
+			printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
+				Groups[i]->Schedule[j].current->pointer->index, Groups[i]->Schedule[j].current->pointer->type,
+				Groups[i]->Schedule[j].current->pointer->starttime, Groups[i]->Schedule[j].current->pointer->endtime);
+			Groups[i]->Schedule[j].current = Groups[i]->Schedule[j].current->next;
+		}
+		printf("\n");
+	}
 
 		if (errcode) err_count++;
 	}
@@ -338,6 +361,7 @@ int Calculate_Objective_Value(Solution* sol)
 
 	sol->objvalue = sol->C_01 + sol->C_02 + sol->C_03 + sol->C_04 + sol->C_05 + sol->C_06/1000000;
 	//sol->objvalue = sol->C_01;
+	//sol->objvalue = sol->C_01 + sol->C_02 + sol->C_03 + sol->C_04 + sol->C_05;
 
 	ERR_CODE(ENcloseH()); if (errcode) err_sum++;
 	ERR_CODE(ENclose()); if (errcode) err_sum++; /* 关闭水力模型 */

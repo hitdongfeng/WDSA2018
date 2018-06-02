@@ -116,6 +116,26 @@ Sdamagebranch* find_visibledamage_index(Sdamagebranchlist* list, int index,int t
 				++count;
 				if (count == index)
 				{
+					/* 遍历初始解,防止爆管隔离操作重复 */
+					if (NvarsCrew1 > 0 || NvarsCrew2 > 0 || NvarsCrew3 > 0)
+					{
+						for (int i = 0; i < MAX_CREWS; i++)
+						{
+							ExistSchedule[i].current = ExistSchedule[i].head;
+							while (ExistSchedule[i].current != NULL)
+							{
+								if (ExistSchedule[i].current->index == list->current->index)
+								{
+									list->current->count = 1;
+									break;
+								}
+								ExistSchedule[i].current = ExistSchedule[i].current->next;
+							}
+							if (list->current->count == 1)
+								break;
+						}
+					}
+
 					if (list->current->count == 0)
 						*OperationType = _Isolate;
 					else if (list->current->count == 1)
