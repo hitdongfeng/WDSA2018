@@ -100,7 +100,7 @@ Sdamagebranch* find_visibledamage_index(Sdamagebranchlist* list, int index,int t
 /*--------------------------------------------------------------
 **  Input:   list: pointer to Sdamagebranchlist chain table
 **			 index: 索引
-**			 number: 爆管/漏损维修操作流程数量,爆管：2; 漏损: 1.
+**			 number: 爆管/漏损维修操作流程数量,爆管：1; 漏损: 2.
 **  Output:  返回指定索引故障操作结构体指针,若找不到指定索引，则返回NULL
 **  Purpose: 根据随机索引值，获取指定操作流程
 **--------------------------------------------------------------*/
@@ -124,7 +124,7 @@ Sdamagebranch* find_visibledamage_index(Sdamagebranchlist* list, int index,int t
 							ExistSchedule[i].current = ExistSchedule[i].head;
 							while (ExistSchedule[i].current != NULL)
 							{
-								if (ExistSchedule[i].current->index == list->current->index)
+								if ((ExistSchedule[i].current->index == list->current->index) && (ExistSchedule[i].current->type== _Break))
 								{
 									list->current->count = 1;
 									break;

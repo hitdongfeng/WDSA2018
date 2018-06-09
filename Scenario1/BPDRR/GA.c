@@ -120,14 +120,6 @@ int InitialGroups()
 	{
 		/*  随机生成可见爆管/漏损操作顺序，供工程队从中选取 */
 		Groups[i]->SerialSchedule = Randperm();
-		/* 打印SerialSchedule结构体数值 */
-		Groups[i]->SerialSchedule->current = Groups[i]->SerialSchedule->head;
-		while (Groups[i]->SerialSchedule->current != NULL)
-		{
-			printf("index: %d	type: %d\n", Groups[i]->SerialSchedule->current->index, Groups[i]->SerialSchedule->current->type);
-
-			Groups[i]->SerialSchedule->current = Groups[i]->SerialSchedule->current->next;
-		}
 
 		/*  将SerialSchedule链表中的所有指令分配至每个工程队 */
 		ERR_CODE(Task_Assignment(Groups[i]->SerialSchedule, Groups[i]->Schedule));
@@ -135,21 +127,6 @@ int InitialGroups()
 		Groups[i]->C_01 = 0;Groups[i]->C_02 = 0;Groups[i]->C_03 = 0;
 		Groups[i]->C_04 = 0;Groups[i]->C_05 = 0;Groups[i]->C_06 = 0;
 		Groups[i]->P_Reproduction = 0;Groups[i]->objvalue = 0;
-
-		/*打印 Schedule 结构体数值 */
-	for (int j = 0; j < MAX_CREWS; j++)
-	{
-		printf("\nSchedule[%d]:\n", j);
-		Groups[i]->Schedule[j].current = Groups[i]->Schedule[j].head;
-		while (Groups[i]->Schedule[j].current != NULL)
-		{
-			printf("index: %d	type: %d	starttime: %d	endtime: %d\n",
-				Groups[i]->Schedule[j].current->pointer->index, Groups[i]->Schedule[j].current->pointer->type,
-				Groups[i]->Schedule[j].current->pointer->starttime, Groups[i]->Schedule[j].current->pointer->endtime);
-			Groups[i]->Schedule[j].current = Groups[i]->Schedule[j].current->next;
-		}
-		printf("\n");
-	}
 
 		if (errcode) err_count++;
 	}
@@ -219,6 +196,9 @@ int Calculate_Objective_Value(Solution* sol)
 
 		if ((t >= SimulationStartTime && t <= SimulationEndTime) && (t % Time_Step == 0))
 		{
+			int stemp1 = 0,stemp5 = 0; //zqz
+			double  stemp2 = 0.0, stemp3 = 0.0, stemp4 = 0.0, stemp6 = 0.0; // zqz
+
 			s = (t / 3600) % 24; //当前时刻所对应的时段
 			/* 计算C_01 */
 			for (int i = 0; i < Nhospital; i++) /* Hospital */
@@ -230,8 +210,10 @@ int Calculate_Objective_Value(Solution* sol)
 
 				y = temflow / ActuralBaseDemand[Hospitals[i].nodeindex - 1][s];
 				if (y <= 0.5)
+				{
 					sol->C_01 += Time_Step / 60;
-					
+					stemp1 += Time_Step / 60; //zqz
+				}
 			}
 
 			if (t >= RestorStartTime)
@@ -247,11 +229,14 @@ int Calculate_Objective_Value(Solution* sol)
 
 						y = temflow / Firefighting[i].fire_flow;
 						if (y <= 0.5)
+						{
 							sol->C_01 += Time_Step / 60;
-							
+							stemp1 += Time_Step / 60; //zqz
+						}
 					}
 				}
 			}
+			fprintf(key_solution, "time: %d	s01: %d\n", t, stemp1); //zqz
 			///* 计算C_02、C_04、C_05 */
 			for (int i = 0; i < Ndemands; i++)
 			{
@@ -264,10 +249,14 @@ int Calculate_Objective_Value(Solution* sol)
 				{
 					sol->C_04 += (double)Time_Step / (Ndemands*60.0);
 
+					stemp4+= (double)Time_Step / (Ndemands*60.0); //zqz
+					
+
 					Criteria[i].count++;
 					if ((Criteria[i].count >= Time_of_Consecutive * (3600 / Time_Step)) && Criteria[i].flag == -1)
 					{
 						sol->C_05++;
+						stemp5++;//zqz
 						Criteria[i].flag = 1;
 					}
 				}
@@ -281,10 +270,22 @@ int Calculate_Objective_Value(Solution* sol)
 			}
 			if (sumpdddemand / sumbasedemand <= 0.95)
 				sol->C_02 = (int)t/60;
+
 			
+			stemp2 = sumpdddemand / sumbasedemand;//zqz
+			fprintf(key_solution, "time: %d	s02: %f\n", t, stemp2); //zqz
+			fprintf(key_solution, "time: %d	s04: %f\n", t, stemp4); //zqz
+			fprintf(key_solution, "time: %d	s05: %d\n", t, stemp5); //zqz
+
 			/* 计算C_03 */
 			if (sumpdddemand / sumbasedemand < 0.999)
-				sol->C_03 += (1.0 - sumpdddemand / sumbasedemand)*(Time_Step/60);
+			{
+				sol->C_03 += (1.0 - sumpdddemand / sumbasedemand)*(Time_Step / 60);
+
+				stemp3= (1.0 - sumpdddemand / sumbasedemand)*(Time_Step / 60);//zqz
+				fprintf(key_solution, "time: %d	s03: %f\n", t, stemp3); //zqz
+			}
+				
 
 
 			/* 计算C_06 */
@@ -295,6 +296,8 @@ int Calculate_Objective_Value(Solution* sol)
 				if ((temflow < FLow_Tolerance))
 					temflow = 0.0;
 				sol->C_06 += (double)temflow * Time_Step;
+
+				stemp6 += (double)temflow * Time_Step;//zqz
 			}
 
 			for (int i = 0; i < Nleaks; i++) /* 遍历所有漏损管道 */
@@ -304,7 +307,10 @@ int Calculate_Objective_Value(Solution* sol)
 				if ((temflow < FLow_Tolerance))
 					temflow = 0.0;
 				sol->C_06 += (double)temflow * Time_Step;
+
+				stemp6 += (double)temflow * Time_Step;//zqz
 			}
+			fprintf(key_solution, "time: %d	s06: %f\n", t, stemp6); //zqz
 /*************************************************************************************************/
 			/* 更新消火栓状态 */
 			if (t >= RestorStartTime)
@@ -358,8 +364,8 @@ int Calculate_Objective_Value(Solution* sol)
 		}
 		ERR_CODE(ENnextH(&tstep));	if (errcode > 100) err_sum++;
 	} while (tstep > 0);
-
-	sol->objvalue = sol->C_01 + sol->C_02 + sol->C_03 + sol->C_04 + sol->C_05 + sol->C_06/1000000;
+	fclose(key_solution); //zqz
+	sol->objvalue = 0*sol->C_01 + 0.15*sol->C_02 + 0.15*sol->C_03 + 0.3*sol->C_04 + 0.3*sol->C_05 + 0.1*sol->C_06/1000000;
 	//sol->objvalue = sol->C_01;
 	//sol->objvalue = sol->C_01 + sol->C_02 + sol->C_03 + sol->C_04 + sol->C_05;
 
@@ -1007,6 +1013,7 @@ int main(void)
 		printf("Can not open the TemSolution.txt!\n");
 		assert(0); //终止程序，返回错误信息
 	}
+	key_solution = fopen("key_solution.txt", "wt");
 	
 	/* 种群初始化 */
 	ERR_CODE(InitialGroups());

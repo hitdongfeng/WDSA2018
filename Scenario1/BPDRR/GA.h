@@ -5,8 +5,8 @@
 
 
 /* 定义GA相关参数 */
-int Num_group = 100;		/* 群体个体规模 */
-int Num_offs = 100;			/* 后代个体数量(Num_son = Num_group + 2) */
+int Num_group = 50;		/* 群体个体规模 */
+int Num_offs = 50;			/* 后代个体数量(Num_son = Num_group + 2) */
 int Num_iteration = 10000;	/* 迭代次数 */
 double P_mutation = 0.1;	/* 变异概率 */
 double P_crossover = 0.8;	/* 交叉概率 */

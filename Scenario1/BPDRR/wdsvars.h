@@ -20,7 +20,8 @@ EXTERN time_t	rawtime;	/* 系统当前时间 */
 
 EXTERN FILE *ErrFile,		/* 错误报告文件指针 */
             *InFile,		/* data.txt文件指针 */
-            *SenAnalys;		/* 灵敏度分析输出文件指针 */
+            *SenAnalys,		/* 灵敏度分析输出文件指针 */
+			*key_solution;
 
 EXTERN	SHospital* Hospitals;			/* 医院设施结构体指针 */
 EXTERN	SFirefight* Firefighting;		/* 消火栓结构体指针 */

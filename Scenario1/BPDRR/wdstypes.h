@@ -10,7 +10,7 @@
 #define	  Start_pipeindex	6440/* pdd模型管道索引起始值(pdd模型节点水量为0，由对应的管道流量代替) */
 #define	  RestorStartTime 1800	/* 开始修复时刻(秒) */
 #define   SimulationStartTime 0  /* 水力模拟开始时刻 */
-#define	  SimulationEndTime 259200 /* 水力模拟结束时刻 */
+#define	  SimulationEndTime 604800 /* 水力模拟结束时刻 */
 
 #define   MAX_CREWS	 3				/* 工程队数量 */
 #define   MAX_LINE   500			/* data.txt文件每行最大字符数 */
