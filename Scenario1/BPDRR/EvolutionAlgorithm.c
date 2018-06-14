@@ -1,6 +1,6 @@
 /*******************************************************************
 Name: EvolutionAlgorithm.c
-Purpose: 进化算法涉及的相关函数
+Purpose: Functions associated with the gene algorithm
 Data: 5/3/2018
 Author: Qingzhou Zhang
 Email: wdswater@gmail.com
@@ -20,15 +20,15 @@ Email: wdswater@gmail.com
 #include "wdsvars.h"
 
 
-Sdamagebranchlist Break, Leak;	/* 可视爆管/漏损管道链表指针 */
-int Num_breaks = 0, Num_leaks = 0;	/* 可视爆管/漏损管道数量 */
-int Break_count, Leak_count;		/* 可视爆管/漏损管道数量计数 */
+Sdamagebranchlist Break, Leak;		/* Visible breals/leaks list */
+int Num_breaks = 0, Num_leaks = 0;	/* No. of visible breals/leaks */
+int Break_count, Leak_count;		/* visible breals/leaks counter */
 
 
 void Add_damagebranch_list(Sdamagebranchlist* list, Sdamagebranch *ptr)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to Sdamagebranchlist chain table
-**			 ptr: 需要插入的Sdamagebranch结构体指针
+**			 ptr: target structure
 **  Output:  none
 **  Purpose: Add a Sdamagebranch struct to the tail of the list
 **--------------------------------------------------------------*/
@@ -46,19 +46,19 @@ void Add_damagebranch_list(Sdamagebranchlist* list, Sdamagebranch *ptr)
 
 int Get_Select_Repository()
 /*--------------------------------------------------------------
-**  Input:   无
+**  Input:   None
 **  Output:  Error Code
-**  Purpose: 生成可见爆管/漏损相关信息，供随机选择函数调用
+**  Purpose: Generate visible breaks/leaks related information for random selection function call 
 **--------------------------------------------------------------*/
 {
-	int errcode = 0, err_count = 0;	/* 错误编码 */
-	Sdamagebranch *ptr;	/* 临时结构体指针 */
+	int errcode = 0, err_count = 0;	/* Error code & error count */
+	Sdamagebranch *ptr;	/* temporary structure pointer */
 
-	/* 初始化Break, Leak, p结构体 */
+	/* initialize Break, Leak, p structure */
 	Break.head = NULL; Break.tail = NULL; Break.current = NULL;
 	Leak.head = NULL; Leak.tail = NULL; Leak.current = NULL;
 
-	/* 获取可见爆管和漏损管道数量 */
+	/* Get No. of breaks and leaks */
 	decisionlist.current = decisionlist.head;
 	while (decisionlist.current != NULL)
 	{
@@ -87,7 +87,7 @@ int Get_Select_Repository()
 
 		else {
 			printf("Type of visible demages error: not Break or Leak!\n");
-			assert(0); //终止程序，返回错误信息
+			assert(0); //Terminate the program and return an error message
 		}
 		decisionlist.current = decisionlist.current->next;
 	}
@@ -99,10 +99,10 @@ int Get_Select_Repository()
 Sdamagebranch* find_visibledamage_index(Sdamagebranchlist* list, int index,int type, int* OperationType)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to Sdamagebranchlist chain table
-**			 index: 索引
-**			 number: 爆管/漏损维修操作流程数量,爆管：2; 漏损: 1.
-**  Output:  返回指定索引故障操作结构体指针,若找不到指定索引，则返回NULL
-**  Purpose: 根据随机索引值，获取指定操作流程
+**			 index: index
+**			 number: No. of breaks/leaks, break：1; leak: 2.
+**  Output:  Returns struct pointer of the specified index, and returns NULL if the specified index cannot be found
+**  Purpose: Get the specified operation flowchart based on the random index value
 **--------------------------------------------------------------*/
 {
 	int count = -1;
@@ -116,7 +116,6 @@ Sdamagebranch* find_visibledamage_index(Sdamagebranchlist* list, int index,int t
 				++count;
 				if (count == index)
 				{
-					/* 遍历初始解,防止爆管隔离操作重复 */
 					if (NvarsCrew1 > 0 || NvarsCrew2 > 0 || NvarsCrew3 > 0)
 					{
 						for (int i = 0; i < MAX_CREWS; i++)
@@ -124,7 +123,7 @@ Sdamagebranch* find_visibledamage_index(Sdamagebranchlist* list, int index,int t
 							ExistSchedule[i].current = ExistSchedule[i].head;
 							while (ExistSchedule[i].current != NULL)
 							{
-								if (ExistSchedule[i].current->index == list->current->index)
+								if ((ExistSchedule[i].current->index == list->current->index) && (ExistSchedule[i].current->type== _Break))
 								{
 									list->current->count = 1;
 									break;
@@ -178,19 +177,19 @@ Sdamagebranch* find_visibledamage_index(Sdamagebranchlist* list, int index,int t
 
 LinkedList* Randperm()
 /**----------------------------------------------------------------
-**  输入:  无
-**  输出:  返回LinkedList指针
-**  功能:  随机生成可见爆管/漏损操作顺序，供工程队从中选取
+**  Input:  None
+**  Output:  Return LinkedList pointer
+**  Purpose:  Randomly generate visible breaks / leaks operation sequence for engineering team to choose from
 **----------------------------------------------------------------*/
 {
-	int errcode = 0;					/* 错误编码 */
-	int temptype;						/* 临时变量 */
-	int Random_breakindex, Random_leakindex; /* 爆管/漏损随机索引 */
-	double randomvalue;					/* 随机浮点数[0,1] */
-	Sdamagebranch *ptr;					/* 临时结构体指针 */
-	LinkedList* p;						/* 临时结构体指针 */
+	int errcode = 0;					/* Error code */
+	int temptype;						/* Temporary variable */
+	int Random_breakindex, Random_leakindex; /* Random index of break/leak */
+	double randomvalue;					/* Random float value [0,1] */
+	Sdamagebranch *ptr;					/* Temporary struct pointer */
+	LinkedList* p;						/* Temporary struct pointer */
 	
-	/* 初始化相关参数 */
+	/* Initializing related parameters */
 	p = (LinkedList*)calloc(1, sizeof(LinkedList));
 	p->head = NULL; p->tail = NULL; p->current = NULL;
 	Break_count = Num_breaks;
@@ -236,7 +235,7 @@ LinkedList* Randperm()
 		}
 	}
 
-	/* 初始化Break,Leak结构体中的count值 */
+	/* Initialize the count value of Break, Leak */
 	Break.current = Break.head;
 	while (Break.current != NULL)
 	{
@@ -257,7 +256,7 @@ LinkedList* Randperm()
 void Add_Taskassigmentlist(STaskassigmentlist* list, Scheduleindex *ptr)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to STaskassigmentlist chain table
-**			 ptr: 需要插入的Scheduleindex结构体指针
+**			 ptr: Target structural pointer
 **  Output:  none
 **  Purpose: Add a Scheduleindex struct to the tail of the list
 **--------------------------------------------------------------*/
@@ -276,8 +275,8 @@ void Add_Taskassigmentlist(STaskassigmentlist* list, Scheduleindex *ptr)
 int Find_Replace_Crow(PDecision_Variable ptr, STaskassigmentlist* schedule)
 /*--------------------------------------------------------------
 **  Input:   ptr: pointer to Decision_Variable
-**  Output:  执行Isolate操作的工程队索引,否则，返回错误值-1.
-**  Purpose: 针对爆管replace操作，查找执行Isolate操作的工程队索引
+**  Output:  The engineering team index that performs the Isolate operation, otherwise return -1.
+**  Purpose: Find the engineering team index that performs the isolate operation for replace operation
 **--------------------------------------------------------------*/
 {
 	for (int i = 0; i < MAX_CREWS; i++)
@@ -299,8 +298,8 @@ int Find_Replace_Crow(PDecision_Variable ptr, STaskassigmentlist* schedule)
 int Find_Finished_Crow(STaskassigmentlist* Schedule)
 /*--------------------------------------------------------------
 **  Input:   None
-**  Output:  返回完成任务的工程队索引,否则，返回错误值-1.
-**  Purpose: 返回完成任务的工程队索引，以继续分配下一个指令
+**  Output:  Returns the engineering team index of the completed task, otherwise returns an error value of -1.
+**  Purpose: Returns the team index of the completed task to continue assigning the next instruction
 **--------------------------------------------------------------*/
 {
 	int index=-1;
@@ -323,17 +322,17 @@ int Find_Finished_Crow(STaskassigmentlist* Schedule)
 
 int Task_Assignment(LinkedList *list, STaskassigmentlist* schedule)
 /**----------------------------------------------------------------
-**  输入:  无
-**  输出:  Error Code
-**  功能:  将SerialSchedule链表中的所有指令分配至每个工程队
+**  Input:   None
+**  Output:  Error Code
+**  Purpose: Assign all instructions in the SerialSchedule list to each engineering team
 **----------------------------------------------------------------*/
 {
 	int errcode = 0, err_count = 0;
-	int crowindex;	/* replace操作工程队索引 */
+	int crowindex;	/* Engineering team index of replace operation */
 	
-	Scheduleindex* ptr;	/* 临时指针 */
+	Scheduleindex* ptr;	/* Temporary pointer */
 
-	/* 若有初始解，先添加初始解 */
+	/* If there is an initial solution, add the initial solution first */
 	if (NvarsCrew1 > 0 || NvarsCrew2 > 0 || NvarsCrew3 > 0)
 	{
 		for (int i = 0; i < MAX_CREWS; i++)
@@ -352,11 +351,11 @@ int Task_Assignment(LinkedList *list, STaskassigmentlist* schedule)
 		}
 	}
 	
-	/* 将SerialSchedule链表中的所有指令分配至每个工程队 */
+	/* Assign all instructions in the SerialSchedule list to each engineering team */
 	list->current = list->head;
 	while (list->current != NULL)
 	{
-		/* 针对爆管Isolate操作,分配至相应的工程队 */
+		/* Assign to the appropriate engineering team for the isolate operation */
 		if (list->current->type == _Isolate)
 		{
 			crowindex = Find_Finished_Crow(schedule);
@@ -377,7 +376,7 @@ int Task_Assignment(LinkedList *list, STaskassigmentlist* schedule)
 				ptr->next = NULL;
 				Add_Taskassigmentlist(&schedule[crowindex], ptr);
 		}
-		/* 针对爆管replace操作，查找执行Isolate操作的工程队索引 */
+		/* Assign to the appropriate engineering team for the replace operation */
 		else if (list->current->type == _Replace)
 		{
 			crowindex = Find_Replace_Crow(list->current, schedule);
@@ -392,7 +391,7 @@ int Task_Assignment(LinkedList *list, STaskassigmentlist* schedule)
 			Add_Taskassigmentlist(&schedule[crowindex], ptr);
 		}
 
-		/* 针对漏损repair操作，分配至相应的工程队 */
+		/* Assign to the appropriate engineering team for the repair operation */
 		else if (list->current->type == _Repair)
 		{
 			crowindex = Find_Finished_Crow(schedule);
@@ -425,13 +424,13 @@ int Task_Assignment(LinkedList *list, STaskassigmentlist* schedule)
 
 void FreeMemory(LinkedList*	SerialSchedule,STaskassigmentlist* Schedule)
 /*--------------------------------------------------------------
-**  Input:   SerialSchedule: 调度指令链表指针(所有调度指令)
-**			 Schedule: 工程队调度指针(包含初始解和新增解)
+**  Input:   SerialSchedule: Point to SerialSchedule
+**			 Schedule: Engineering scheduling pointer (includes initial and new solutions)
 **  Output:  none
 **  Purpose: free memory
 **--------------------------------------------------------------*/
 {
-	/* 释放Schedule数组内存 */
+	/* Free the memory of schedule array  */
 	for (int i = 0; i < MAX_CREWS; i++)
 	{
 		Schedule[i].current = Schedule[i].head;
@@ -443,7 +442,7 @@ void FreeMemory(LinkedList*	SerialSchedule,STaskassigmentlist* Schedule)
 		}
 	}
 
-	/* 释放SerialSchedule链表指针 */
+	/* Free SerialSchedule */
 	SerialSchedule->current = SerialSchedule->head;
 	while (SerialSchedule->current != NULL)
 	{
@@ -458,26 +457,26 @@ void FreeMemory(LinkedList*	SerialSchedule,STaskassigmentlist* Schedule)
 
 int main(void)
 {
-	int errcode = 0;	//错误编码 
+	int errcode = 0;	//Error code
 	inpfile = "BBM_Scenario1.inp";
 
-	STaskassigmentlist* Schedule; /* 工程队调度指针(包含初始解和新增解) */
+	STaskassigmentlist* Schedule; 
 	Schedule = (STaskassigmentlist*)calloc(MAX_CREWS, sizeof(STaskassigmentlist));
-	LinkedList*	SerialSchedule;     /* 调度指令链表指针(所有调度指令) */
+	LinkedList*	SerialSchedule;
 
 
 
-	/* 读取data.txt数据 */
+	/* read the data in data.txt */
 	errcode = readdata("data.txt", "err.txt");
 	if (errcode) { fprintf(ErrFile, ERR406); return (406); }
 
-	/* 打开inp文件 */
+	/*Open the .inp file */
 	Open_inp_file(inpfile, "report.rpt", "");
 
-	/* 获取爆管/漏损管道喷射节点索引、喷射系数、管道索引; 医院及消火栓节点、管道索引 */
+	/*Get property for damaged pipes and critical facilities (hospitals and hydrants) settings */
 	Get_FailPipe_keyfacility_Attribute();
 
-	/* 生成可见爆管/漏损相关信息，供随机选择函数调用 */
+	/* Generate visible breaks/leaks related information for random selection function call  */
 	errcode = Get_Select_Repository();
 	if (errcode) { fprintf(ErrFile, ERR416); return (416); }
 
@@ -485,7 +484,7 @@ int main(void)
 
 	
 	
-	/* 打印SerialSchedule结构体数值 */
+	/* Print SerialSchedule */
 	SerialSchedule->current = SerialSchedule->head;
 	while (SerialSchedule->current != NULL)
 	{
@@ -496,7 +495,7 @@ int main(void)
 
 	errcode = Task_Assignment(SerialSchedule, Schedule);
 
-	/* 打印 Schedule 结构体数值 */
+	/* Print Schedule */
 	for (int i = 0; i < MAX_CREWS; i++)
 	{
 		printf("\nSchedule[%d]:\n", i);

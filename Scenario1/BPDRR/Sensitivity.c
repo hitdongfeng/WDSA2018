@@ -1,10 +1,10 @@
-/*******************************************************************
+/********************************************************************************************
 Name: Sensitivity.c
-Purpose: 对受损管道进行灵敏度分析，用于确定受损管道重要程度
+Purpose: Sensitivity analysis for damaged pipes to determine the importance of damaged pipes
 Data: 5/3/2018
 Author: Qingzhou Zhang
 Email: wdswater@gmail.com
-********************************************************************/
+*********************************************************************************************/
 
 #include <stdio.h>
 #include <string.h>
@@ -19,11 +19,11 @@ Email: wdswater@gmail.com
 
 void Open_inp_file(char *f1, char *f2, char *f3)
 /**----------------------------------------------------------------
-**  输入:  f1: .inp文件指针
-		  f2: .rpt文件指针
-		  f3: .out文件指针
-**  输出:  无
-**  功能:  打开.inp文件.
+**  Input:  f1: .inp file
+		  f2: .rpt file
+		  f3: .out file
+**  Output:  none
+**  Purpose:  Open the .inp file.
 **----------------------------------------------------------------*/
 {
 	int errcode = 0;
@@ -36,15 +36,15 @@ void Open_inp_file(char *f1, char *f2, char *f3)
 
 int GetDemand(char* f1)
 /**----------------------------------------------------------------
-**  输入:  f1:inp文件指针;
-**  输出:  Error code
-**  功能:  获取所有时间步长(小时)需水量节点实际需水量
+**  Input:  f1:inp file;
+**  Output:  Error code
+**  Purpose:  Get the nodal actual demand for each integer moment
 **----------------------------------------------------------------*/
 {
 	int s;
 	int errcode = 0, errsum = 0;
-	long t, tstep;		/* t: 当前时刻; tstep: 水力计算时间步长 */
-	float demand;		/* 临时变量，用于存储泄流量 */
+	long t, tstep;		/* t: current time; tstep: time step */
+	float demand;		/* temporary variable */
 
 	/* run epanet analysis engine */
 	Open_inp_file(f1, "BBM_EPS.rpt", "");
@@ -56,7 +56,7 @@ int GetDemand(char* f1)
 	do 
 	{
 		ERR_CODE(ENrunH(&t)); if (errcode>100) errsum++;
-		s = (t / 3600) % 24; //当前时刻所对应的时段
+		s = (t / 3600) % 24; //current integer time
 		if ((t % 3600 == 0) && (t % 3600 < Pattern_length)) /* Begin the restoration */
 		{
 			for (int i = 0; i < Ndemands; i++)
@@ -78,9 +78,9 @@ int GetDemand(char* f1)
 
 void Get_FailPipe_keyfacility_Attribute()
 /**----------------------------------------------------------------
-**  输入:  无
-**  输出:  无
-**  功能:  获取受损管道和关键基础设置(医院、消火栓)相关属性值
+**  Input:  none
+**  Output:  none
+**  Purpose:  Get property for damaged pipes and critical facilities (hospitals and hydrants) settings
 **----------------------------------------------------------------*/
 {
 	int errcode = 0;
@@ -161,18 +161,18 @@ void Get_FailPipe_keyfacility_Attribute()
 
 int Visible_Damages_initial(long time)
 /**----------------------------------------------------------------
-**  输入:  time 模拟时刻
-**  输出:  Error code
-**  功能:  获取模拟开始时可见爆管或漏损管道信息
+**  Input:  time: simulation time (sec)
+**  Output:  Error code
+**  Purpose:  Get the visible damages at the beginning of restoration
 **----------------------------------------------------------------*/
 {
 	int errcode = 0, errsum=0;
-	long t, tstep;		/* t: 当前时刻; tstep: 水力计算时间步长 */ 
-	float flow;	/* 临时变量，用于存储泄流量 */
+	long t, tstep;		
+	float flow;
 	
 
 	
-	/* 设置epanet计算选项，报告状态信息将耗费大量时间，因此，不输出状态信息 */
+	/* Setting the epanet calculation option, reporting state information will take a significant amount of time, so do not output status information */
 	ENsetstatusreport(0);		/* No Status reporting */
 	ENsetreport("MESSAGES NO"); /* No Status reporting */
 
@@ -185,7 +185,7 @@ int Visible_Damages_initial(long time)
 		ERR_CODE(ENrunH(&t)); if (errcode>100) errsum++;
 		if (t == time) /* Begin the restoration */
 		{
-			/* 遍历所有爆管 */
+			/* Scan all breaks */
 			for (int i = 0; i < Nbreaks; i++)
 			{
 				ERR_CODE(ENgetlinkvalue(BreaksRepository[i].flowindex, EN_FLOW, &flow));
@@ -194,7 +194,7 @@ int Visible_Damages_initial(long time)
 				if (errcode>100)	errsum++;
 			}
 
-			/* 遍历所有漏损管道 */
+			/* Scan all leaks */
 			for (int i = 0; i < Nleaks; i++)
 			{
 				ERR_CODE(ENgetlinkvalue(LeaksRepository[i].flowindex, EN_FLOW, &flow));
@@ -213,13 +213,13 @@ int Visible_Damages_initial(long time)
 
 int Breaks_Adjacent_operation(int type, int index,int code, float status,float emitter)
 /**----------------------------------------------------------------
-**  输入:  type:类型: 1.Isolate, 4.Reopen
-**		  index 爆管在仓库中的索引(以0开始)
+**  Input:  type:类型: 1.Isolate, 4.Reopen
+**		  index: Broken pipe index in breaksRepository(start from 0)
 **		  code: link parameter code (EN_INITSTATUS,EN_STATUS)
-**		  status 管道初始状态, 0:关闭; 1:开启
-**		  emitter 爆管节点喷射系数
-**  输出:  Error code
-**  功能:  关闭或开启爆管附近管道，对爆管进行隔离或复原
+**		  status: pipe initial status, 0:close; 1:open
+**		  emitter: emitter coefficient
+**  Output:  Error code
+**  Purpose:  Iisolate or restore the damage by closing or reopening the pipes related the damage
 **----------------------------------------------------------------*/
 {
 	int errcode=0, errsum = 0;
@@ -255,15 +255,15 @@ int Breaks_Adjacent_operation(int type, int index,int code, float status,float e
 
 int Leaks_operation(int index, int code, float status, float emitter)
 /**----------------------------------------------------------------
-**  输入:  index 爆管在仓库中的索引(以0开始)
-**		  code: link parameter code (EN_INITSTATUS,EN_STATUS)
-**		  status 管道初始状态, 0:关闭; 1:开启
-**		  emitter 漏损节点喷射系数
-**  输出:  Error code
-**  功能:  修复漏损管道，对漏损管道进行复原
+**  Input:  index: leak pipe index in leaksRepository(start from 0)
+**			code: link parameter code (EN_INITSTATUS,EN_STATUS)
+**			status: pipe initial status, 0:close; 1:open
+**			emitter 漏损节点喷射系数
+**  Output:  Error code
+**  Purpose:  emitter coefficient
 **----------------------------------------------------------------*/
 {
-	int errcode = 0, errsum = 0; /* 错误编码 */
+	int errcode = 0, errsum = 0; /* Error  code */
 
 	//float STATUS, EMITTER;//
 
@@ -285,9 +285,9 @@ int Leaks_operation(int index, int code, float status, float emitter)
 
 Sercapacity* GetSerCapcity(long time)
 /**----------------------------------------------------------------
-**  输入:  time: 模拟时刻
-**  输出:  Error code
-**  功能:  计算当前时刻系统供水能力
+**  Input:  time: simulation time
+**  Output:  Error code
+**  Purpose:  Calculate system water supply capacity at current time
 **----------------------------------------------------------------*/
 {
 	int errcode = 0, errsum = 0;
@@ -299,7 +299,7 @@ Sercapacity* GetSerCapcity(long time)
 	Sercapacity* ptr = (Sercapacity*)calloc(1, sizeof(Sercapacity));
 	ERR_CODE(MEM_CHECK(ptr));	if (errcode) errsum++;
 
-	s = (time / 3600) % 24; //当前时刻所对应的时段
+	s = (time / 3600) % 24; 
 	for (int i = 0; i < Ndemands; i++)
 	{
 		ERR_CODE(ENgetlinkvalue(i + Start_pipeindex, EN_FLOW, &x));
@@ -346,16 +346,16 @@ Sercapacity* GetSerCapcity(long time)
 
 int GetSerCapcPeriod(long starttime, long endtime)
 /**----------------------------------------------------------------
-**  输入:  starttime:起始时刻; endtime:终止时刻
-**  输出:  Error code
-**  功能:  计算指定时段内每个模拟步长系统的供水能力
+**  Input:  starttime:start time; endtime:end time
+**  Output:  Error code
+**  Purpose:   Calculate system water supply capacity at specified time period
 **----------------------------------------------------------------*/
 {
 	int errcode = 0, errsum = 0;
-	long t, tstep;	/* t: 当前时刻; tstep: 水力计算时间步长 */
+	long t, tstep;	
 	Sercapacity* ptr;
 
-	/* 设置epanet计算选项，报告状态信息将耗费大量时间，因此，不输出状态信息 */
+	
 	ENsetstatusreport(0);		/* No Status reporting */
 	ENsetreport("MESSAGES NO"); /* No Status reporting */
 	/* run epanet analysis engine */
@@ -381,9 +381,9 @@ int GetSerCapcPeriod(long starttime, long endtime)
 
 int SensitivityAnalysis(long starttime,long endtime)
 /**----------------------------------------------------------------
-**  输入:  time: 模拟时刻
-**  输出:  Error code
-**  功能:  对受损可见管道进行灵敏度分析
+**  Input:  time: simulation time
+**  Output:  Error code
+**  Purpose:  Sensitivity analysis for damaged visible pipes
 **----------------------------------------------------------------*/
 {
 	int count = 0;
@@ -405,7 +405,7 @@ int SensitivityAnalysis(long starttime,long endtime)
 			ERR_CODE(Breaks_Adjacent_operation(_Isolate,index, EN_INITSTATUS,0,0));
 			ERR_CODE(GetSerCapcPeriod(starttime, endtime));
 
-			/* 打印每个模拟步长的供水能力计算结果 */
+			/* Print the calculate results at each time step */
 			fprintf(SenAnalys, "BreakPipeId: %s BreakPipeindex: %d\n", BreaksRepository[index].pipeID, BreaksRepository[index].pipeindex);
 			SerCapcPeriod.current = SerCapcPeriod.head;
 			while (SerCapcPeriod.current != NULL)
@@ -418,7 +418,7 @@ int SensitivityAnalysis(long starttime,long endtime)
 			}
 			fprintf(SenAnalys, "\n");
 
-			/* 释放SerCapcPeriod链表指针 */
+			/*Free SerCapcPeriod */
 			SerCapcPeriod.current = SerCapcPeriod.head;
 			while (SerCapcPeriod.current != NULL)
 			{
@@ -427,7 +427,7 @@ int SensitivityAnalysis(long starttime,long endtime)
 				SerCapcPeriod.current = SerCapcPeriod.head;
 			}
 
-			/* 还原管道初始状态 */
+			/* Set initial state for each pipe */
 				emitter = BreaksRepository[index].emittervalue;
 				ERR_CODE(Breaks_Adjacent_operation(_Isolate,index, EN_INITSTATUS, 1, emitter));
 				printf("Accumulates number of visible breaks: %d\n", count++);
@@ -441,51 +441,44 @@ int SensitivityAnalysis(long starttime,long endtime)
 
 
 /*************************************************
-** 此main函数用于计算指定时段内每个模拟步长系统的供水能力
-** 用于调试函数GetSerCapcPeriod
+** This main function is used to calculate the water supply capacity of each simulated step system during a specified period of time
+** Used to debug the function GetSerCapcPeriod
 **************************************************/
 //#define GSCP
 #ifdef GSCP
 int main(void)
 {
-	int errcode = 0;		//错误编码 
-	FILE *file;				//输出结果文件指针
-	long starttime = 1800;	//模拟开始时刻(秒)
-	long endtime = 86400;	//模拟结束时刻(秒)
+	int errcode = 0;		//Error code
+	FILE *file;				//output file
+	long starttime = 1800;	//Simulation start time (sec)
+	long endtime = 86400;	//Simulation end time (sec)
 	
-	if ((Temfile = fopen("Temfile.txt", "wt")) == NULL)
-	{
-		printf("Can not open the GSCP.txt file!\n");
-		assert(0); //终止程序，返回错误信息
-	}
-
-	/* 读取data.txt数据 */
+	/* read ata.txt */
 	errcode = readdata("data.txt", "err.txt");
 	if (errcode) { fprintf(ErrFile, ERR406); return (406); }
 
-	/* 获取各节点每个时间步长(h)的基本需水量 */
+	/* Get the nodal base demand at each integer time step */
 	errcode = GetDemand("BBM_EPS.inp");
 	if (errcode) { fprintf(ErrFile, ERR412); return (412); }
 
-	/* 打开inp文件 */
+	/* Open inp file */
 	Open_inp_file("BBM_Scenario1.inp", "BBM_Scenario1.rpt", "");
 
-	/* 获取爆管/漏损管道喷射节点索引、喷射系数、管道索引; 医院及消火栓节点、管道索引 */
+	/* Get property for damaged pipes and critical facilities (hospitals and hydrants) settings */
 	Get_FailPipe_keyfacility_Attribute();
 
-	/* 设置epanet计算选项，报告状态信息将耗费大量时间，因此，不输出状态信息 */
 	ENsetstatusreport(0);		/* No Status reporting */
 	ENsetreport("MESSAGES NO"); /* No Status reporting */
 
-	/* 计算指定时段内每个模拟步长系统的供水能力 */
+	/* Calculate system water supply capacity at specified time period */
 	ERR_CODE(GetSerCapcPeriod(starttime, endtime));
 	if (errcode) { fprintf(ErrFile, ERR414); return (414); }
 	
-	/* 打印每个模拟步长的供水能力计算结果 */
+	/* Print the calculate results at each time step */
 	if ( (file = fopen("GSCP.txt", "wt")) == NULL )
 	{
 		printf("Can not open the GSCP.txt file!\n");
-		assert(0); //终止程序，返回错误信息
+		assert(0); 
 	}
 	fprintf(file, "Report start time: %d	Report end time: %d\n", starttime, endtime);
 	SerCapcPeriod.current = SerCapcPeriod.head;
@@ -498,14 +491,13 @@ int main(void)
 		SerCapcPeriod.current = SerCapcPeriod.current->next;
 	}
 
-	/* 释放内存 */
-	Emptymemory();
+	/* Free memory */
+	//Emptymemory();
 
-	/* 关闭txt文件 */
+	/* close .txt file */
 	fclose(InFile);
 	fclose(ErrFile);
 	fclose(file);
-	fclose(Temfile);
 	getchar();
 
 	return 0;
@@ -516,41 +508,41 @@ int main(void)
 #ifdef SA
 int main(void)
 {
-	int errcode = 0;	//错误编码 
-	long starttime = 1800;	//模拟开始时刻(秒)
-	long endtime = 86400;	//模拟结束时刻(秒)
+	int errcode = 0;		//Error code 
+	long starttime = 1800;	//Simulation start time (sec)
+	long endtime = 86400;	//Simulation end time (sec)
 
-	/* 读取data.txt数据 */
+	/* read ata.txt */
 	errcode = readdata("data.txt", "err.txt");
 	if (errcode) { fprintf(ErrFile, ERR406); return (406); }
 
-	/* 获取各节点每个时间步长(h)的基本需水量 */
+	/* Get the nodal base demand at each integer time step */
 	errcode = GetDemand("BBM_EPS.inp");
 	if (errcode) { fprintf(ErrFile, ERR412); return (412); }
 	
-	/* 打开inp文件 */
+	/* Open inp file */
 	Open_inp_file("BBM_Scenario1.inp", "BBM_Scenario1.rpt", "");
 
-	/* 获取爆管/漏损管道喷射节点索引、喷射系数、管道索引; 医院及消火栓节点、管道索引 */
+	/* Get property for damaged pipes and critical facilities (hospitals and hydrants) settings */
 	Get_FailPipe_keyfacility_Attribute();
 	
-	/* 获取模拟开始时可见爆管或漏损管道信息 */
+	/* Get the visible damages at the beginning of restoration */
 	ERR_CODE(Visible_Damages_initial(1800));
 	if (errcode) { fprintf(ErrFile, ERR411); return (411); }
 
 	if ((SenAnalys = fopen("SenAnalysis.txt", "wt")) == NULL)
 	{
 		printf("Can not open the SenAnalysis.txt file!\n"); assert(0);
-	} //终止程序，返回错误信息
+	} 
 	fprintf(SenAnalys, "Report start time: %d	Report end time: %d\n", starttime, endtime);
 
 	ERR_CODE(SensitivityAnalysis(starttime, endtime));
 	if (errcode) { fprintf(ErrFile, ERR414); return (414); }
 
-	/* 释放内存 */
-	Emptymemory();
+	/* Free memory */
+	//Emptymemory();
 
-	/* 关闭txt文件 */
+	/* close .txt file */
 	fclose(InFile);
 	fclose(ErrFile);
 	fclose(SenAnalys);

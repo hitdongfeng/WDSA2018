@@ -1,6 +1,6 @@
 /*******************************************************************
 Name: readdata.c
-Purpose: 用于读取data.txt文件中的数据
+Purpose: Read data from data.txt
 Data: 5/3/2018
 Author: Qingzhou Zhang
 Email: wdswater@gmail.com
@@ -14,16 +14,16 @@ Email: wdswater@gmail.com
 #define EXTERN extern
 //#define EXTERN 
 #include "wdsvars.h"
-#define MAXERRS  5   /* 错误信息累积最大次数 */
+#define MAXERRS  5		/* MAX number of error messages */
 
-char *Tok[MAX_TOKS];	/* 定义字段数组，用于存储字段 */
-int Ntokens;			/* data.txt中每行字段数量 */
-int hospital_count;		/* 医院设施计数 */
-int	firefight_count;	/* 消火栓计数 */
-int	break_count;		/* 爆管计数 */
-int	leak_count;			/* 漏损管道计数 */
+char *Tok[MAX_TOKS];	/* Array of token strings  */
+int Ntokens;			/* Max. items per line of data.txt */
+int hospital_count;		/* Hospital count */
+int	firefight_count;	/* Hydrant count */
+int	break_count;		/* Break count */
+int	leak_count;			/* Leak count */
 
-/* 定义data.txt文件标题数组 */
+/* Defines the file header array in data.txt */
 char *Sect_Txt[] = {"[Hospital]", 
 					"[Firefight]",
 					"[BREAKS]",
@@ -35,7 +35,7 @@ char *Sect_Txt[] = {"[Hospital]",
 					NULL
 				   };
 
-/* 定义data.txt文件标题枚举 */
+/* Define Enumeration Variables */
 enum Sect_Type {
 	_Hospital,
 	_Firefight,
@@ -65,24 +65,24 @@ void Open_file(char *f1,char *f2)
 /*----------------------------------------------------------------
 **  Input: f1 = data.txt文件指针, f2 = 错误报告文件指针
 **  Output: none
-**  Purpose: 打开数据和错误报告文件
+**  Purpose: Open data.txt and error report file
 **----------------------------------------------------------------*/
 {
-	/* 初始化文件指针为 NULL */
+	/* Initialize file pointer to NULL */
 	InFile = NULL;
 	ErrFile = NULL;
 
 	if (str_comp(f1, f2))
 	{
 		printf("Cannot use duplicate file names!\n");
-		assert(0); //终止程序，返回错误信息
+		assert(0); //Terminate program and return error message
 	}
 
-	/* 只读方式打开数据文件 */
+	/* Open a data file as read-only */
 	if ((InFile = fopen(f1, "rt")) == NULL || (ErrFile = fopen(f2, "wt")) == NULL)
 	{
 		printf("Can not open the data.txt or error report file!\n");
-		assert(0); //终止程序，返回错误信息
+		assert(0); //Terminate program and return error message
 	}
 }
 
@@ -117,16 +117,16 @@ void Init_pointers()
 **  Purpose: initializes global pointers to NULL
 **----------------------------------------------------------------*/
 {
-	Hospitals = NULL;				/* 医院设施结构体指针 */
-	Firefighting = NULL;			/* 消火栓结构体指针 */
-	BreaksRepository = NULL;		/* 爆管仓库指针(用于存储所有爆管) */
-	LeaksRepository = NULL;			/* 漏损管道仓库指针(用于存储所有漏损管道) */
-	ExistSchedule = NULL;				/* 工程队调度指针 */
-	initializeList(&decisionlist);	/* 决策变量指针结构体 */
-	initializeList(&IniVisDemages);	/* 模拟开始时刻(6:30)可见受损管道数组指针 */
-	ActuralBaseDemand = NULL;		/* 节点实际需水量数组指针 */
-	iniSercaplist(&SerCapcPeriod);	/* 指定时段内每个模拟步长系统供水能力结构体 */
-	Criteria = NULL;				/* 评估准则数组指针(存储每个步长每个准则中间计算结果) */
+	Hospitals = NULL;				/* Point to hospital struct */
+	Firefighting = NULL;			/* Point to hydrant struct */
+	BreaksRepository = NULL;		/* Point to breaks repository */
+	LeaksRepository = NULL;			/* Point to leaks repository */
+	ExistSchedule = NULL;			/* Existing engineering team scheduling (initial Solution) */
+	initializeList(&decisionlist);	/* Point to decision list */
+	initializeList(&IniVisDemages);	/* Inilize visible damages at the begin of restoration (6:30) */
+	ActuralBaseDemand = NULL;		/* Point to actual nodal demand array */
+	iniSercaplist(&SerCapcPeriod);	/* Water supply capacity of WDS at each time step */
+	Criteria = NULL;				/* Count the No. of nodes without service for more than 8 consecutive hours (C_05) */
 }
 
 int  Str_match(char *str, char *substr)
@@ -182,15 +182,15 @@ void  Get_count()
 	int   sect, newsect;        /* data.txt sections          */
 
 	/* Initialize network component counts */
-	Nhospital = 0;		/* 医院基础设施数量 */
-	Nfirefight = 0;		/* 消火栓数量 */
-	Nbreaks = 0;		/* 爆管管道数量 */
-	Nleaks = 0;			/* 漏失管道数量 */
-	Ndecisionvars = 0;	/* 初始决策变量数量 */
-	NvarsCrew1 = 0;		/* crew1初始解决策变量 */
-	NvarsCrew2 = 0;		/* crew2初始解决策变量 */
-	NvarsCrew3 = 0;		/* crew3初始解决策变量 */
-	sect = -1;			/* data.txt中数据片段索引 */
+	Nhospital = 0;		/* No. of hospitals */
+	Nfirefight = 0;		/* No. of fire hydrants */
+	Nbreaks = 0;		/* No. of Breaks */
+	Nleaks = 0;			/* No. of Leaks  */
+	Ndecisionvars = 0;	/* New-Added decision variables */
+	NvarsCrew1 = 0;		/* No. of decision variables for crew1 */
+	NvarsCrew2 = 0;		/* No. of decision variables for crew2 */
+	NvarsCrew3 = 0;		/* No. of decision variables for crew3 */
+	sect = -1;			/* Data segment index in data.txt */
 
 	/* Make pass through data.txt counting number of each parameter */
 	while (fgets(line, MAX_LINE, InFile) != NULL)
@@ -278,9 +278,9 @@ int  Alloc_Memory()
 
 int  Get_tokens(char *s)
 /*--------------------------------------------------------------
-**  输入: *s = string to be tokenized
-**  输出: returns number of tokens in s
-**  功能: scans string for tokens, saving pointers to them
+**  Input: *s = string to be tokenized
+**  Output: returns number of tokens in s
+**  Purpose: scans string for tokens, saving pointers to them
 **       in module global variable Tok[]
 **--------------------------------------------------------------*/
 {
@@ -320,10 +320,10 @@ int  Get_tokens(char *s)
 
 int  Get_int(char *s, int *y)
 /*-----------------------------------------------------------
-**  输入: *s = character string
-**  输出: *y = int point number
+**  Input: *s = character string
+**  Output: *y = int point number
 **             returns 1 if conversion successful, 0 if not
-**  功能: converts string to int point number
+**  Purpose: converts string to int point number
 **-----------------------------------------------------------*/
 {
 	char *endptr;
@@ -348,10 +348,10 @@ int  Get_long(char *s, long *y)
 
 int  Get_float(char *s, float *y)
 /*-----------------------------------------------------------
-**  输入: *s = character string
-**  输出: *y = float point number
+**  Input: *s = character string
+**  Output: *y = float point number
 **             returns 1 if conversion successful, 0 if not
-**  功能: converts string to floating point number
+**   Purpose: converts string to floating point number
 **-----------------------------------------------------------*/
 {
 	char *endptr;
@@ -363,17 +363,17 @@ int  Get_float(char *s, float *y)
 int Add_tail(LinkedList *list, int index, int type,long starttime,long endtime)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to LinkedList array
-**			 index: 管道数组索引,从0开始
-**			 type: 管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀
-**		     type: 受损管道类型, 1:爆管; 2:漏损	
-**			 starttime: 修复开始时刻
-**			 endtime: 修复结束时刻
+**			 index: Pipe array index, start from 0
+**			 type: Operation type, 1:isolation; 2:replacement; 3:repair; 4:reopen
+**		     type: damage type, 1:break; 2:leak	
+**			 starttime: Start of restoration
+**			 endtime: End of restoration
 **  Output:  error code
 **  Purpose: Add a Decision_Variable struct to the tail of the list
 **--------------------------------------------------------------*/
 {
-	int errcode = 0; /* 初始化错误代码 */
-	PDecision_Variable p;	/* 临时变量，用于存储可见爆管或漏损管道信息 */
+	int errcode = 0; 
+	PDecision_Variable p;	/* Temporary variable */
 	p = (PDecision_Variable)calloc(1, sizeof(struct Decision_Variable));
 	ERR_CODE(MEM_CHECK(p));	if (errcode) return 402;
 	p->type = type;
@@ -398,7 +398,7 @@ int Add_tail(LinkedList *list, int index, int type,long starttime,long endtime)
 void Add_SerCapcity_list(Sercaplist* list, Sercapacity *ptr)
 /*--------------------------------------------------------------
 **  Input:   list: pointer to Sercaplist chain table
-**			 ptr: 需要插入的Sercapacity结构体指针
+**			 ptr: Point to Sercapacity
 **  Output:  none
 **  Purpose: Add a Sercapacity struct to the tail of the list
 **--------------------------------------------------------------*/
@@ -477,7 +477,7 @@ int Breaks_Value()
 	strncpy(BreaksRepository[break_count].nodeID, Tok[1], MAX_ID);
 	strncpy(BreaksRepository[break_count].flowID, Tok[2], MAX_ID);
 
-	if (!Get_float(Tok[3], &dia)) return (403); /* 数值类型错误，含有非法字符 */
+	if (!Get_float(Tok[3], &dia)) return (403); /* Wrong numeric type with illegal characters */
 	BreaksRepository[break_count].pipediameter = dia;
 
 	for (int i = 4; i < Ntokens - 2; i++)
@@ -485,8 +485,8 @@ int Breaks_Value()
 	BreaksRepository[break_count].pipes = ptr;
 	BreaksRepository[break_count].num_isovalve = Ntokens - 6;
 
-	if (!Get_int(Tok[Ntokens - 2], &time1)) return (403); /* 数值类型错误，含有非法字符 */
-	if (!Get_int(Tok[Ntokens - 1], &time2)) return (403); /* 数值类型错误，含有非法字符 */ 
+	if (!Get_int(Tok[Ntokens - 2], &time1)) return (403); 
+	if (!Get_int(Tok[Ntokens - 1], &time2)) return (403); 
 	BreaksRepository[break_count].isolate_time = time1;
 	BreaksRepository[break_count].replace_time = time2;
 
@@ -540,8 +540,8 @@ int DecisionVars_data()
 	if (Ndecisionvars > 0)
 	{
 
-		if (!Get_int(Tok[0], &x))	return (403); /* 数值类型错误，含有非法字符 */
-		if (!Get_int(Tok[1], &y))	return (403); /* 数值类型错误，含有非法字符 */
+		if (!Get_int(Tok[0], &x))	return (403); 
+		if (!Get_int(Tok[1], &y))	return (403); 
 		errcode = Add_tail(&decisionlist, x, y,0,0);
 	}
 	return errcode;
@@ -549,7 +549,7 @@ int DecisionVars_data()
 
 int Crew_data(LinkedList *ptr,int NvarsCrew)
 /*--------------------------------------------------------------
-**  Input:   ptr: LinkedList结构体指针; NvarsCrew: Crew决策变量
+**  Input:   ptr: Point to LinkedList; NvarsCrew: No. of schedules for a crew
 **  Output:  errcode code
 **  Purpose: processes  Crew data
 **  Format:
@@ -563,10 +563,10 @@ int Crew_data(LinkedList *ptr,int NvarsCrew)
 	if (NvarsCrew > 0)
 	{
 
-		if (!Get_int(Tok[0], &index))	return (403); /* 数值类型错误，含有非法字符 */
-		if (!Get_int(Tok[1], &type))	return (403); /* 数值类型错误，含有非法字符 */
-		if (!Get_long(Tok[2], &starttime))	return (403); /* 数值类型错误，含有非法字符 */
-		if (!Get_long(Tok[3], &endtime))	return (403); /* 数值类型错误，含有非法字符 */
+		if (!Get_int(Tok[0], &index))	return (403);
+		if (!Get_int(Tok[1], &type))	return (403); 
+		if (!Get_long(Tok[2], &starttime))	return (403); 
+		if (!Get_long(Tok[3], &endtime))	return (403); 
 		errcode = Add_tail(ptr, index, type,starttime,endtime);
 	}
 	return errcode;
@@ -608,24 +608,24 @@ int  readdata(char *f1, char *f2)
 			wline[MAX_LINE + 1];  /* Working copy of input line      */
 	int		sect, newsect;        /* Data sections                   */
 	
-	Ntokens = 0;			/* 每行字段数量 */
-	hospital_count=0;		/* 医院设施计数 */
-	firefight_count = 0;	/* 消火栓计数 */
-	break_count = 0;	    /* 爆管计数 */
-	leak_count = 0;			/* 漏损管道计数 */
+	Ntokens = 0;			/* Max. items per line of data.txt */
+	hospital_count=0;		/* Max. items per line of data.txt */
+	firefight_count = 0;	/* Hospital count */
+	break_count = 0;	    /* Break count */
+	leak_count = 0;			/* Leak count */
 
 	Init_pointers();			/* Initialize global pointers to NULL. */
 	Open_file(f1,f2);			/* Open input & report files */
-	Get_count();				/* 获取相关类型参数的数量 */
+	Get_count();				/* Get the No. of related parameters */
 
-	errcode = Alloc_Memory();	/* 为相关类型参数结构体分配内存 */
+	errcode = Alloc_Memory();	/* Memory allocation */
 	if (errcode)
 	{
 		fprintf(ErrFile, ERR402);
 		return (402);
 	}
 
-	rewind(InFile);				/* 将指针指向文件开头 */
+	rewind(InFile);				/* Point to the head of data.txt */
 
 	while (fgets(line, MAX_LINE, InFile) != NULL)
 	{
@@ -638,7 +638,7 @@ int  readdata(char *f1, char *f2)
 		if (Ntokens == 0) continue;
 		if (*Tok[0] == ';') continue;
 
-		/* 检查字符串是否超过了每行最大长度*/
+		/* Check if the string exceeds the maximum length per line*/
 		if (strlen(line) >= MAX_LINE)
 		{
 			fprintf(ErrFile, ERR404);
@@ -673,11 +673,11 @@ int  readdata(char *f1, char *f2)
 				errsum++;
 			}
 		}
-		/* 搜索到文件末尾或达到错误信息最大数量时，结束while循环 */
+		/* End While loop when searching for the end of a file or the maximum number of error messages */
 		if (errsum == MAXERRS) break;
 	}   /* End of while */
 
-	if (errsum > 0)  errcode = 406; //输入文件中有一处或多处错误
+	if (errsum > 0)  errcode = 406; //One or more errors in the data.txt file
 
 	return (errcode);
 }
@@ -689,23 +689,23 @@ void Emptymemory()
 **  Purpose: free memory
 **--------------------------------------------------------------*/
 {
-	/* 释放Hospitals数组内存 */
+	/* Free Hospitals */
 	SafeFree(Hospitals);
 
-	/* 释放Firefighting数组内存 */
+	/* Free Firefighting */
 	SafeFree(Firefighting);
 	
-	/* 释放BreaksRepository数组内存 */
+	/* Free BreaksRepository */
 	for (int i = 0; i < Nbreaks; i++)
 	{
 		SafeFree(BreaksRepository[i].pipes);
 		SafeFree(BreaksRepository[i]);
 	}
-	/* 释放LeaksRepository数组内存 */
+	/* Free LeaksRepository */
 	for (int i = 0; i < Nleaks; i++)
 		SafeFree(LeaksRepository[i]);
 
-	/* 释放ExistSchedule数组内存 */
+	/* Free ExistSchedule */
 	for (int i = 0; i < MAX_CREWS; i++)
 	{
 		ExistSchedule[i].current = ExistSchedule[i].head;
@@ -717,7 +717,7 @@ void Emptymemory()
 		}
 	}
 
-	/* 释放decisionlist链表指针 */
+	/* Free decisionlist */
 	decisionlist.current = decisionlist.head;
 	while (decisionlist.current != NULL)
 	{
@@ -727,7 +727,7 @@ void Emptymemory()
 	}
 
 
-	/* 释放IniVisDemages链表指针 */
+	/* Free IniVisDemages */
 	IniVisDemages.current = IniVisDemages.head;
 	while (IniVisDemages.current != NULL)
 	{
@@ -737,14 +737,14 @@ void Emptymemory()
 	}
 
 
-	/* 释放ActuralBaseDemand数组指针 */
+	/* Free ActuralBaseDemand */
 	for (int i = 0; i < Ndemands; i++)
 	{
 		SafeFree(ActuralBaseDemand[i]);
 	}
 	SafeFree(ActuralBaseDemand);
 
-	/* 释放SerCapcPeriod链表指针 */
+	/* Free SerCapcPeriod */
 	SerCapcPeriod.current = SerCapcPeriod.head;
 	while (SerCapcPeriod.current != NULL)
 	{
@@ -753,7 +753,7 @@ void Emptymemory()
 		SerCapcPeriod.current = SerCapcPeriod.head;
 	}
 
-	/* 释放Criteria内存 */
+	/* Free Criteria */
 	SafeFree(Criteria);
 
 

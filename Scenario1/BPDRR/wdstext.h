@@ -1,5 +1,5 @@
 
-//该文件包含了EPANET中所有字符串常量的定义
+//This file defines all the string constants in the BPDRR program
 #ifndef WDSTEXT_H
 #define WDSTEXT_H
 

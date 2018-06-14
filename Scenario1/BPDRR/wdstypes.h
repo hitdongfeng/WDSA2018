@@ -3,37 +3,38 @@
 #include<stdlib.h>
 
 /*-----------------------------
-          全局常量的定义
+ Definition of global constants
 -----------------------------*/
 
-#define	  Ndemands	 4201		/* 管网需水量节点数量(需水量>0) */
-#define	  Start_pipeindex	6440/* pdd模型管道索引起始值(pdd模型节点水量为0，由对应的管道流量代替) */
-#define	  RestorStartTime 1800	/* 开始修复时刻(秒) */
-#define   SimulationStartTime 0  /* 水力模拟开始时刻 */
-#define	  SimulationEndTime 259200 /* 水力模拟结束时刻 */
+#define	  Ndemands	 4201			/* No. of nodes (basedemand >0) */
+#define	  Start_pipeindex	6440	/* Start pipe index for pdd model(the nodal demand is zero for pdd model,  by the corresponding pipe flow instead) */
+#define	  RestorStartTime 1800		/* Start time for repair (sec) */
+#define   SimulationStartTime 0		/* Start time for hydraulic simulation */
+#define	  SimulationEndTime 604800	/* End time for hydraulic simulation */
 
-#define   MAX_CREWS	 3				/* 工程队数量 */
-#define   MAX_LINE   500			/* data.txt文件每行最大字符数 */
-#define   MAX_TOKS   50				/* data.txt文件每行最大字段数 */
-#define	  MAX_ID	 31				/* ID最大字符数 */
-#define	  Time_Step	 900			/* 水力模拟时间步长(秒) */
-#define	  Pattern_length 24			/* 用水量时间模式长度 */
-#define	  Break_Weight_Leak	0.5		/* 分配任务时，爆管与漏损选取权重 */
-#define	  NUM_BreakOperation 2		/* 爆管维修操作流程数量(隔离+替换) */
-#define	  NUM_LeakOperation 1		/* 漏损维修操作流程数量(维修) */
-#define	  MAX_Fire_Volume 756000	/* 每个消火栓总供水量(L) */
-#define	  NUM_Criteria	6			/* 评价准则数量 */
-#define	  Time_of_Consecutive 8 		/* 节点连续缺水时间(小时) */
-#define	  FLow_Tolerance	1e-3	/* 流量容差 */
+#define   MAX_CREWS	 3				/* No. of screws */
+#define   MAX_LINE   500			/* Maximum number of characters per line in data.txt */
+#define   MAX_TOKS   50				/* Maximum number of tokens per line in data.txt */
+#define	  MAX_ID	 31				/* Maximum number of characters for ID */
+#define	  Time_Step	 900			/* Hydraulic Simulation Time Step (SEC) */
+#define	  Pattern_length 24			/* Pattern length */
+#define	  Break_Weight_Leak	0.5		/* The selection weight of a pipe and leakage */
+#define	  NUM_BreakOperation 2		/* Number of break operations(isolation + replacemant) */
+#define	  NUM_LeakOperation 1		/* Number of leak operations(repair) */
+#define	  MAX_Fire_Volume 756000	/* Total water supply per hydrant (L) */
+#define	  NUM_Criteria	6			/* No. of criteria */
+#define	  Time_of_Consecutive 8 	/* Nodes without service for more than 8 consecutive hours */
+#define	  FLow_Tolerance	1e-3	/* Tolerance of flow */
 
 
-#define   DATA_SEPSTR    " \t\n\r" /* data.txt文件字段分割符 */
-#define   U_CHAR(x) (((x) >= 'a' && (x) <= 'z') ? ((x)&~32) : (x)) /* 字母转大写 */
-#define   MEM_CHECK(x)  (((x) == NULL) ? 402 : 0 )   /* 内存分配不成功会返回空值NULL，显示错误代码402(没有充分的内存),否则返回0(无错误) */
-#define   ERR_CODE(x)  (errcode = ((errcode>100) ? (errcode) : (x))) /* 函数错误类型检查,如果错误代码大于100,则被认为是严重错误 */
+#define   DATA_SEPSTR    " \t\n\r" /* Separator in data.txt */
+#define   U_CHAR(x) (((x) >= 'a' && (x) <= 'z') ? ((x)&~32) : (x)) /* uppercase char of x */
+#define   MEM_CHECK(x)  (((x) == NULL) ? 402 : 0 )   /* Macro to test for successful allocation of memory  */
+#define   ERR_CODE(x)  (errcode = ((errcode>100) ? (errcode) : (x))) /*Macro to evaluate function x with error checking
+																	   (Fatal errors are numbered higher than 100) */
 
-static void SafeFree(void **pp)          /* 安全释放内存函数：safeFree函数调用实际释放内存的free函数 */
-{                                        /* 单纯的free函数执行后，内存被释放，但仍然有可能包含原值，指针仍指向原地址，会导致迷途指针 */
+static void SafeFree(void **pp)          /* Safely free memory */
+{                                       
 	if (pp != NULL && *pp != NULL)
 	{
 		free(*pp);
@@ -42,132 +43,130 @@ static void SafeFree(void **pp)          /* 安全释放内存函数：safeFree函数调用实
 }
 #define SafeFree(p) SafeFree((void**)&(p))
 
-/*-----------------------------
-		全局枚举变量定义
------------------------------*/
+/*----------------------------------
+ Define global enumeration variable
+------------------------------------*/
 
-/* 定义故障管道状态 */
+/* Fault status */
 enum Pipe_Status 
 {
-	_Isolate=1,	//爆管隔离
-	_Replace,	//爆管替换
-	_Repair,	//漏损管道修复
-	_Reopen		//阀门开启
+	_Isolate=1,	//Isolation
+	_Replace,	//Replacement
+	_Repair,	//Repair
+	_Reopen		//Reopen
 };
 
-/* 定义受损管道类型 */
+/* Damage types */
 enum Demage_type
 {
-	_Break=1,	//爆管
-	_Leak		//漏损
+	_Break=1,	//break
+	_Leak		//leak
 };
 
 
 /*-----------------------------
-		全局数据结构体定义
+	    Global structs
 -----------------------------*/
 
-/* 定义故障管道结构体 */
+/* Failure pipe */
 struct FailurePipe
 {
-	char pipeID[MAX_ID + 1];	//故障管道ID
-	int pipeindex;				//故障管道索引(以1开始)
+	char pipeID[MAX_ID + 1];	//Pipe ID
+	int pipeindex;				//Pipe index(start from 1)
 };
 typedef struct FailurePipe SFailurePipe;
 
-/* 定义医院设施结构体 */
+/* Hospital */
 struct Hospital
 {
-	char nodeID[MAX_ID + 1];	//医院节点ID
-	char pipeID[MAX_ID + 1];	//医院对应管道ID(用于模拟用水量)
-	int	nodeindex;				//医院节点索引
-	int pipeindex;				//医院对应管道索引
+	char nodeID[MAX_ID + 1];	//Node ID
+	char pipeID[MAX_ID + 1];	//Pipe ID associated with hospital (Used to simulate demand)
+	int	nodeindex;				//Node index
+	int pipeindex;				//Pipe index associated with hospital
 };
 typedef struct Hospital SHospital;
 
-/* 定义消火栓结构体 */
+/* Hydrant */
 struct Firefight
 {
-	char ID[MAX_ID + 1];	//消火栓管道ID
-	int index;				//消火栓管道索引(以1开始)
-	float fire_flow;		//设计消防流量
-	float cumu_flow;		//累计消防流量
+	char ID[MAX_ID + 1];	//Pipe ID
+	int index;				//Pipe index(start from 1)
+	float fire_flow;		//Fire fight fow
+	float cumu_flow;		//Cumulative fire flow
 };
 typedef struct Firefight SFirefight;
 
-/* 定义爆管结构体 */
+/* Break */
 struct Breaks
 {
-	int isolate_time;		//隔离爆管所需要的时间(minutes)
-	int replace_time;		//爆管修复时间(hours)
-	int num_isovalve;		//隔离爆管所需要关闭的管道数量
-	int nodeindex;			//虚拟节点索引（以1开始）
-	int pipeindex;          //爆管管道索引（以1开始）
-	int flowindex;			//爆管流量管道索引(以1开始)
-	char nodeID[MAX_ID + 1];//模拟爆管所添加的虚拟节点ID(将喷射系数设为0，以关闭爆管流量)
-	char pipeID[MAX_ID + 1];//爆管管道ID(将管道状态设置为open，以恢复供水)
-	char flowID[MAX_ID + 1];//爆管流量管道ID
-	float pipediameter;		//爆管管道直径(mm)
-	float emittervalue;     //虚拟节点喷射系数
-	SFailurePipe *pipes;	//隔离爆管所需要关闭的管道ID
+	int isolate_time;		//Isolate time (minutes)
+	int replace_time;		//Replace time (hours)
+	int num_isovalve;		//No. of pipes closed to isolate the broken pipe
+	int nodeindex;			//Virtual Node Index（start from 1）
+	int pipeindex;          //Broken pipe index（start from 1）
+	int flowindex;			//Flow pipe index (start from 1)
+	char nodeID[MAX_ID + 1];//Virtual node ID added to simulate a broken pipe(Set the emitter coefficient to 0 to close the broken pipe)
+	char pipeID[MAX_ID + 1];//Broken pipe ID (Set the status of the broken pipe to open to restore water supply)
+	char flowID[MAX_ID + 1];//Flow pipe ID
+	float pipediameter;		//Broken pipe diameter(mm)
+	float emittervalue;     //Emitter coefficient of Virtual node
+	SFailurePipe *pipes;	//Pipes closed for isolation
 };
 typedef struct Breaks SBreaks;
 
 /* 定义漏损管道结构体 */
 struct Leaks
 {
-	int repair_flag;		//漏损修复标识, 0:未修复; 1:修复
-	int reopen_flag;		//阀门开启标识, 0:未开启; 1:开启
-	int repair_time;		//漏损修复时间(hours)
-	int nodeindex;			//虚拟节点索引（以1开始）
-	int pipeindex;          //漏损管道索引（以1开始）
-	int flowindex;			//漏损流量管道索引(以1开始)
-	char nodeID[MAX_ID + 1];//模拟漏损所添加的虚拟节点ID(将喷射系数设为0，以关闭漏损流量)
-	char pipeID[MAX_ID + 1];//漏损管道ID(将管道状态设置为open，以恢复供水)
-	char flowID[MAX_ID + 1];//漏损流量管道ID
-	float pipediameter;		//漏损管道直径(mm)
-	float emittervalue;     //虚拟节点喷射系数
+	int repair_time;		//Repair time(hours)
+	int nodeindex;			//Virtual Node Index（start from 1）
+	int pipeindex;          //Leak pipe index（start from 1）
+	int flowindex;			//Flow pipe index (start from 1)
+	char nodeID[MAX_ID + 1];//Virtual node ID added to simulate a broken pipe(Set the emitter coefficient to 0 to close the broken pipe)
+	char pipeID[MAX_ID + 1];//Leak pipe ID (Set the status of the broken pipe to open to restore water supply)
+	char flowID[MAX_ID + 1];//Flow pipe ID
+	float pipediameter;		//Leak pipe diameter(mm)
+	float emittervalue;     //Emitter coefficient of Virtual node
 };
 typedef struct Leaks SLeaks;
 
-/* 定义决策变量结构体 */
+/* Decision variable */
 struct Decision_Variable
 {
-	int index;		//管道数组索引,从0开始
-	int type;		//管道类型, 1:爆管隔离; 2:爆管替换; 3:漏损修复; 4:开阀 
-	long starttime;	//操作起始时间
-	long endtime;	//操作结束时间
-	struct Decision_Variable *next;	//指向下一个邻接链表结构体
+	int index;		//Pipe array index (start from 0)
+	int type;		//Operation types, 1:Isolation; 2:Replacement; 3:Repair; 4:Reopen
+	long starttime;	//Start time 
+	long endtime;	//End time
+	struct Decision_Variable *next;	
 };
 typedef  struct Decision_Variable* PDecision_Variable;
 
-/* 定义LinkedList链表指针结构体 */
+/* Define LinkedList list */
 typedef struct _linkedlist
 {
-	PDecision_Variable head;	/* 指向头节点指针 */
-	PDecision_Variable tail;	/* 指向尾节点指针 */
-	PDecision_Variable current;	/* 当前指针，用于辅助遍历链表 */
+	PDecision_Variable head;	/* point to head */
+	PDecision_Variable tail;	/* point to tail */
+	PDecision_Variable current;	/* Current pointer for traversing list */
 }LinkedList;
 
-/* 定义系统供水能力结构体 */
+/* Water supply capacity of WDS */
 typedef struct _sercapacity
 {
-	double Functionality;	/* 系统整体供水能力 */
-	int Numkeyfac;			/* 满足供水能力的关键基础设施数量 */
-	double MeankeyFunc;		/* 基础设施平均供水能力 */
-	long time;				/* 模拟时刻 */
+	double Functionality;	/* Overall water supply capacity  */
+	int Numkeyfac;			/* No. of critical facilities with service */
+	double MeankeyFunc;		/* Average water supply capacity */
+	long time;				/* Simulation time */
 	struct _sercapacity *next;
 }Sercapacity;
 
-/* 定义Sercaplist链表指针结构体 */
+/* Define Sercaplist list */
 typedef struct _sercaplist
 {
-	Sercapacity* head;		/* 指向头节点指针 */
-	Sercapacity* tail;		/* 指向尾节点指针 */
-	Sercapacity* current;	/* 当前指针，用于辅助遍历链表 */
+	Sercapacity* head;		/* point to head */
+	Sercapacity* tail;		/* point to tail */
+	Sercapacity* current;	/* Current pointer for traversing list */
 }Sercaplist;
 
-/* 定义damagebranch结构体，在randperm函数中调用 */
+/* Define damagebranch struct, called in randperm function */
 typedef struct _damagebranch
 {
 	int index;
@@ -175,35 +174,34 @@ typedef struct _damagebranch
 	struct _damagebranch *next;
 }Sdamagebranch;
 
-/* 定义damagebranchlist链表指针结构体 */
+/* Define damagebranchlist list */
 typedef struct _damagebranchlist
 {
-	Sdamagebranch* head;	/* 指向头节点指针 */
-	Sdamagebranch* tail;	/* 指向尾节点指针 */
-	Sdamagebranch* current;	/* 当前指针，用于辅助遍历链表 */
+	Sdamagebranch* head;	/* point to head */
+	Sdamagebranch* tail;	/* point to tail */
+	Sdamagebranch* current;	/* Current pointer for traversing list */
 }Sdamagebranchlist;
 
-/* 定义调度指令索引结构体 */
+/* Schedule index */
 typedef struct _Scheduleindex
 {
-	PDecision_Variable pointer; /* SerialSchedule链表指定位置指针 */
-	struct _Scheduleindex *next;/* 指向下一个结构体指针 */
+	PDecision_Variable pointer; /* Corresponding position pointer in SerialSchedule list */
+	struct _Scheduleindex *next;
 }Scheduleindex;
 
-/* 定义调度指令索引链表指针 */
+/* Taskassigment list */
 typedef struct _Taskassigmentlist
 {
-	Scheduleindex* head;	/* 指向头节点指针 */
-	Scheduleindex* tail;	/* 指向尾节点指针 */
-	Scheduleindex* current;	/* 当前指针，用于辅助遍历链表 */
+	Scheduleindex* head;	/* point to head */
+	Scheduleindex* tail;	/* point to tail */
+	Scheduleindex* current;	/* Current pointer for traversing list */
 }STaskassigmentlist;
 
-/* 定义Criteria结构体, C_05评估准则数组指针(用于计数) */
+/* Criteria struct (for C_05 counting) */
 typedef struct _Criteria
 {
-	int flag;  /* 标志 */
-	int count; /* 计数器 */
+	int flag;  /* flag */
+	int count; /* counter */
 }SCriteria;
-
 
 #endif
