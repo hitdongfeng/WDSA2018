@@ -10,7 +10,7 @@
 #define	  Start_pipeindex	6440	/* Start pipe index for pdd model(the nodal demand is zero for pdd model,  by the corresponding pipe flow instead) */
 #define	  RestorStartTime 1800		/* Start time for repair (sec) */
 #define   SimulationStartTime 0		/* Start time for hydraulic simulation */
-#define	  SimulationEndTime 604800	/* End time for hydraulic simulation */
+#define	  SimulationEndTime 172800	/* End time for hydraulic simulation */
 
 #define   MAX_CREWS	 3				/* No. of screws */
 #define   MAX_LINE   500			/* Maximum number of characters per line in data.txt */

@@ -339,8 +339,8 @@ int Calculate_Objective_Value(Solution* sol)
 		}
 		ERR_CODE(ENnextH(&tstep));	if (errcode > 100) err_sum++;
 	} while (tstep > 0);
-	sol->objvalue = 0*sol->C_01 + 0.15*sol->C_02 + 0.15*sol->C_03 + 0.2*sol->C_04 + 0.4*sol->C_05 + 0.1*sol->C_06/1000000;
-	//sol->objvalue = sol->C_01;
+	//sol->objvalue = 0*sol->C_01 + 0.15*sol->C_02 + 0.15*sol->C_03 + 0.2*sol->C_04 + 0.4*sol->C_05 + 0.1*sol->C_06/1000000;
+	sol->objvalue = sol->C_01;
 
 	ERR_CODE(ENcloseH()); if (errcode) err_sum++;
 	ERR_CODE(ENclose()); if (errcode) err_sum++; /* 关闭水力模型 */

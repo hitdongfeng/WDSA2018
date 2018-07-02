@@ -5,9 +5,9 @@
 
 
 /* Defining parameters related to genetic algorithm */
-int Num_group = 50;			/* Population size */
+int Num_group = 50;		/* Population size */
 int Num_offs = 50;			/* offspring size */
-int Num_iteration = 10000;	/* No. of iteration */
+int Num_iteration = 20000;	/* No. of iteration */
 double P_mutation = 0.1;	/* Mutation probability */
 double P_crossover = 0.8;	/* Cross probability */
 
